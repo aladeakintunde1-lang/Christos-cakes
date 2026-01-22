@@ -1,0 +1,8 @@
+{
+  "name": "SweetTrack - Christos Cakes",
+  "description": "A bespoke cake business storefront and logistics manager with real-time delivery tracking and AI-powered order assistance.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
