@@ -3,17 +3,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SweetTrack - Christos Cakes</title>
+    
+    <!-- Mobile App Capabilities -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Christos Cakes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#db2777">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain; /* Prevents "pull to refresh" bounce in some browsers if desired */
         }
         h1, h2, h3, .font-serif {
             font-family: 'Playfair Display', serif;
+        }
+        /* Handle iOS safe areas */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .pt-safe {
+            padding-top: env(safe-area-inset-top);
+        }
+        /* Custom scrollbar for a cleaner mobile look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
         }
     </style>
 <script type="importmap">
@@ -28,7 +49,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-slate-50 text-slate-900 selection:bg-pink-100 selection:text-pink-900">
     <div id="root"></div>
 </body>
 </html>

@@ -24,6 +24,15 @@ export interface Order {
   createdAt: string;
 }
 
+export type ImageDisplayMode = 'original' | 'square';
+
+export interface GalleryImage {
+  id: string;
+  url: string; // Base64 or external URL
+  displayMode: ImageDisplayMode;
+  createdAt: string;
+}
+
 export interface Zone {
   name: string;
   postcodes: string[];

@@ -187,7 +187,7 @@ const OrderForm: React.FC = () => {
           <button 
             disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid()}
             onClick={() => setStep(2)}
-            className="w-full bg-pink-600 text-white p-4 rounded-xl mt-8 font-bold disabled:opacity-50 transition-opacity"
+            className="w-full bg-pink-600 text-white p-4 rounded-xl mt-8 font-bold disabled:opacity-50 transition-opacity shadow-lg"
           >
             CONTINUE
           </button>
@@ -201,8 +201,6 @@ const OrderForm: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c.796 0 1.441.645 1.441 1.44s-.645 1.44-1.441 1.44c-.795 0-1.44-.645-1.44-1.44s.645-1.44 1.44-1.44z"/></svg>
                 Cake Inspiration
               </h3>
               <p className="text-xs text-slate-500 mb-4">Browse our gallery to pick a design or see size references.</p>
@@ -231,11 +229,11 @@ const OrderForm: React.FC = () => {
                   <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase">Or Upload Screenshot</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-4 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors"
+                    className="w-full min-h-[100px] p-4 bg-white border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     {order.inspirationImage ? (
-                      <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                        <img src={order.inspirationImage} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="relative w-full rounded-lg overflow-hidden bg-white">
+                        <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain" />
                         <button 
                           onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, inspirationImage: undefined })) }}
                           className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"
@@ -330,7 +328,7 @@ const OrderForm: React.FC = () => {
 
           <button 
             onClick={() => setStep(3)}
-            className="w-full bg-pink-600 text-white p-4 rounded-xl mt-8 font-bold"
+            className="w-full bg-pink-600 text-white p-4 rounded-xl mt-8 font-bold shadow-lg"
           >
             VIEW SUMMARY
           </button>
@@ -389,11 +387,8 @@ const OrderForm: React.FC = () => {
           <button 
             disabled={!order.customerName || !order.phone}
             onClick={handleFinish}
-            className="w-full bg-pink-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full bg-pink-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
             PAY & PLACE ORDER
           </button>
         </div>
