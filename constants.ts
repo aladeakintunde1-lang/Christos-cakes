@@ -23,6 +23,10 @@ export const SIZES = [
   { label: 'Extra Large (12")', price: 110 },
 ];
 
+export const SHOP_POSTCODE = 'TA21 9RH';
+export const PRICE_PER_MILE = 1.85; // £1.85 per mile
+export const MIN_DELIVERY_FEE = 5.00;
+
 export const PICKUP_ADDRESS = '7 Singh street, Wellington, TA21 9RH';
 
 export const ADMIN_PASSWORD = 'cake'; // Simple demo password

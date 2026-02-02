@@ -220,10 +220,7 @@ const AdminPortal: React.FC = () => {
 
       {viewMode === 'Gallery' && (
         <div className="animate-slideIn">
-          {/* COMBINED GALLERY MANAGEMENT VIEW */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            
-            {/* LEFT SIDE: UPLOAD CONTROLS */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl sticky top-28">
                 <h2 className="text-2xl font-bold text-slate-900 font-serif mb-2">Storefront Manager</h2>
@@ -284,7 +281,6 @@ const AdminPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* RIGHT SIDE: IMAGE LIST & DELETE */}
             <div className="lg:col-span-8">
               <div className="flex justify-between items-end mb-6 px-2">
                 <h2 className="text-xl font-bold text-slate-900 font-serif">Live Photos ({galleryImages.length})</h2>
@@ -370,10 +366,27 @@ const AdminPortal: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                  <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors">
+                  <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors flex flex-col">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Specifications</p>
                     <p className="text-xl font-bold text-slate-800">{order.size} {order.flavor}</p>
                     <p className="text-sm text-slate-500 italic mt-4 leading-relaxed bg-white/50 p-4 rounded-xl">"{order.messageOnCake || 'No special message requested'}"</p>
+                    
+                    {order.inspirationLink && (
+                      <div className="mt-4 pt-4 border-t border-slate-200/50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">Inspiration Link</p>
+                        <a 
+                          href={order.inspirationLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-pink-600 hover:underline flex items-center gap-2 truncate"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View Instagram Design
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
