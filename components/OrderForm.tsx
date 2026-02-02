@@ -83,6 +83,11 @@ const OrderForm: React.FC = () => {
     
     saveOrder(finalOrder);
     setIsSuccess(true);
+    
+    // Simulate real notification sound or haptic feedback intent
+    if ('vibrate' in navigator) {
+      navigator.vibrate([100, 50, 100]);
+    }
   };
 
   const isPostcodeValid = () => {
@@ -94,46 +99,55 @@ const OrderForm: React.FC = () => {
   if (isSuccess) {
     return (
       <div className="animate-fadeIn min-h-[60vh] flex items-center justify-center py-12 px-4">
-        <div className="bg-white rounded-[3rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+        <div className="bg-white rounded-[3.5rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100 relative overflow-hidden">
+          {/* Confetti-like decor */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-500 via-green-400 to-blue-500" />
+          
+          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-[bounce_2s_infinite]">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-4xl font-bold text-slate-900 mb-4 font-serif">Order Confirmed!</h2>
-          <p className="text-slate-500 mb-10 leading-relaxed">
-            Thank you for choosing Christos Cakes, <span className="font-bold text-slate-900">{order.customerName}</span>. 
-            We've received your bespoke order and are getting ready to create your masterpiece.
+          
+          <h2 className="text-4xl font-bold text-slate-900 mb-4 font-serif">Order Received!</h2>
+          <p className="text-slate-500 mb-10 leading-relaxed font-medium">
+            Thank you, <span className="font-bold text-slate-900">{order.customerName}</span>. Your bespoke luxury cake journey has officially begun.
           </p>
           
-          <div className="space-y-4 mb-10">
-            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 animate-slideIn" style={{ animationDelay: '0.2s' }}>
-              <div className="bg-pink-100 p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 text-left animate-slideIn" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-pink-100 rounded-xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Client Alert</span>
               </div>
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-left">
-                Confirmation SMS sent to {order.phone}
-              </p>
+              <p className="text-xs font-bold text-slate-700">SMS Confirmation has been dispatched to {order.phone}</p>
             </div>
-            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 animate-slideIn" style={{ animationDelay: '0.4s' }}>
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 text-left animate-slideIn" style={{ animationDelay: '0.4s' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-blue-100 rounded-xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Ping</span>
               </div>
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-left">
-                The baker has been notified of your order
-              </p>
+              <p className="text-xs font-bold text-slate-700">The baker has been notified and is reviewing your design.</p>
             </div>
           </div>
 
           <button 
             onClick={() => navigate('/')}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase"
+            className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
           >
-            Back to Home
+            RETURN TO GALLERY
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </button>
         </div>
       </div>
