@@ -16,6 +16,7 @@ const OrderForm: React.FC = () => {
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
     flavor: FLAVORS[0],
@@ -81,8 +82,7 @@ const OrderForm: React.FC = () => {
     } as Order;
     
     saveOrder(finalOrder);
-    alert('Order Placed Successfully!');
-    navigate('/');
+    setIsSuccess(true);
   };
 
   const isPostcodeValid = () => {
@@ -90,6 +90,55 @@ const OrderForm: React.FC = () => {
     if (!order.postcode) return false;
     return UK_POSTCODE_REGEX.test(order.postcode.trim());
   };
+
+  if (isSuccess) {
+    return (
+      <div className="animate-fadeIn min-h-[60vh] flex items-center justify-center py-12 px-4">
+        <div className="bg-white rounded-[3rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100">
+          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-4xl font-bold text-slate-900 mb-4 font-serif">Order Confirmed!</h2>
+          <p className="text-slate-500 mb-10 leading-relaxed">
+            Thank you for choosing Christos Cakes, <span className="font-bold text-slate-900">{order.customerName}</span>. 
+            We've received your bespoke order and are getting ready to create your masterpiece.
+          </p>
+          
+          <div className="space-y-4 mb-10">
+            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 animate-slideIn" style={{ animationDelay: '0.2s' }}>
+              <div className="bg-pink-100 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-left">
+                Confirmation SMS sent to {order.phone}
+              </p>
+            </div>
+            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 animate-slideIn" style={{ animationDelay: '0.4s' }}>
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-left">
+                The baker has been notified of your order
+              </p>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => navigate('/')}
+            className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 mb-12 border border-slate-100">

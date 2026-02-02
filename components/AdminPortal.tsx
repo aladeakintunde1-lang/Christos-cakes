@@ -29,6 +29,20 @@ const AdminPortal: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  // Real-time Order Notification for Admin
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sweettrack_orders') {
+        refreshData();
+        setLastAction('🚨 NEW ORDER RECEIVED');
+        setTimeout(() => setLastAction(null), 5000);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const refreshData = () => {
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
@@ -156,7 +170,7 @@ const AdminPortal: React.FC = () => {
     <div className="animate-fadeIn pb-24 max-w-6xl mx-auto px-4">
       {/* GLOBAL NOTIFICATION */}
       {lastAction && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white px-8 py-3 rounded-full text-[10px] font-black tracking-widest shadow-2xl animate-bounce border border-white/20 uppercase">
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-8 py-3 rounded-full text-[10px] font-black tracking-widest shadow-2xl animate-bounce border uppercase ${lastAction.includes('NEW ORDER') ? 'bg-pink-600 text-white border-pink-400' : 'bg-slate-900 text-white border-white/20'}`}>
           {lastAction}
         </div>
       )}
