@@ -25,6 +25,15 @@ const OrderForm: React.FC = () => {
     status: 'Pending',
     createdAt: new Date().toISOString(),
     id: Math.random().toString(36).substr(2, 9),
+    customerName: '',
+    email: '',
+    phone: '',
+    postcode: '',
+    address: '',
+    deliveryDate: '',
+    deliveryTimeSlot: '',
+    messageOnCake: '',
+    inspirationLink: '',
   });
 
   const handlePostcodeChange = async (postcode: string) => {
@@ -140,15 +149,26 @@ const OrderForm: React.FC = () => {
             </div>
           </div>
 
-          <button 
-            onClick={() => navigate('/')}
-            className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
-          >
-            RETURN TO GALLERY
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={() => navigate(`/invoice/${order.id}`)}
+              className="w-full bg-pink-600 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-pink-700 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
+            >
+              VIEW INVOICE
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
+            >
+              RETURN TO GALLERY
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -457,6 +477,12 @@ const OrderForm: React.FC = () => {
                   value={order.phone || ''}
                   onChange={e => setOrder(prev => ({ ...prev, phone: e.target.value }))}
                 />
+                <input 
+                  type="email" placeholder="Email Address" 
+                  className="block w-full text-right bg-transparent text-[10px] text-slate-400 font-bold outline-none"
+                  value={order.email || ''}
+                  onChange={e => setOrder(prev => ({ ...prev, email: e.target.value }))}
+                />
               </div>
             </div>
 
@@ -507,7 +533,7 @@ const OrderForm: React.FC = () => {
           </div>
 
           <button 
-            disabled={!order.customerName || !order.phone}
+            disabled={!order.customerName || !order.phone || !order.email}
             onClick={handleFinish}
             className="w-full bg-pink-600 text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-pink-100 hover:bg-pink-700 active:scale-[0.98] transition-all flex items-center justify-center gap-4 uppercase tracking-widest disabled:opacity-50"
           >

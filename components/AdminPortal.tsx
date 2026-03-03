@@ -1,31 +1,39 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   getOrders, 
   updateOrderStatus, 
   deleteOrder, 
   getGalleryImages, 
   addGalleryImage, 
-  deleteGalleryImage 
+  deleteGalleryImage,
+  getLogoUrl,
+  saveLogoUrl
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
-import { ADMIN_PASSWORD } from '../constants';
+import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
 const AdminPortal: React.FC = () => {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-  const [viewMode, setViewMode] = useState<'Orders' | 'Gallery' | 'Insights'>('Orders');
+  const [viewMode, setViewMode] = useState<'Orders' | 'Gallery' | 'Insights' | 'Settings'>('Orders');
   const [instaImportUrl, setInstaImportUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
+  const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       refreshData();
+      const savedLogo = getLogoUrl();
+      if (savedLogo) setCustomLogoUrl(savedLogo);
     }
   }, [isAuthenticated]);
 
@@ -122,6 +130,21 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const url = reader.result as string;
+        setCustomLogoUrl(url);
+        saveLogoUrl(url);
+        setLastAction('Brand logo updated!');
+        setTimeout(() => setLastAction(null), 3000);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleDeleteImage = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -198,6 +221,12 @@ const AdminPortal: React.FC = () => {
             className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Insights
+          </button>
+          <button 
+            onClick={() => setViewMode('Settings')}
+            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Settings
           </button>
         </div>
       </header>
@@ -347,6 +376,70 @@ const AdminPortal: React.FC = () => {
         </div>
       )}
 
+      {viewMode === 'Settings' && (
+        <div className="animate-slideIn max-w-2xl mx-auto">
+          <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <h2 className="text-3xl font-bold text-slate-900 font-serif mb-2">Brand Identity</h2>
+            <p className="text-sm text-slate-400 mb-10 font-medium">Manage your brand assets used across the application and invoices.</p>
+            
+            <div className="space-y-10">
+              <div className="flex flex-col items-center p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Current Invoice Logo</p>
+                <div className="w-48 h-48 bg-white rounded-[2rem] shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden mb-8 p-4">
+                  <img src={customLogoUrl} alt="Brand Logo" className="max-w-full max-h-full object-contain" />
+                </div>
+                
+                <div className="flex gap-4 w-full">
+                  <button 
+                    onClick={() => logoInputRef.current?.click()}
+                    className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload New Logo
+                  </button>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    ref={logoInputRef} 
+                    accept="image/*" 
+                    onChange={handleLogoUpload} 
+                  />
+                  {customLogoUrl !== LOGO_URL && (
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('sweettrack_settings');
+                        setCustomLogoUrl(LOGO_URL);
+                        setLastAction('Logo reset to default');
+                        setTimeout(() => setLastAction(null), 3000);
+                      }}
+                      className="px-6 py-4 bg-white text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-red-500 transition-all border border-slate-200"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-pink-900 mb-1">Logo Specifications</h4>
+                    <p className="text-[11px] text-pink-700/70 leading-relaxed">For the best results on your luxury invoices, use a high-resolution PNG or JPG with a transparent or white background. Square or circular logos work best.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewMode === 'Orders' && (
         <div className="space-y-8 animate-slideIn">
           {orders.map(order => (
@@ -370,12 +463,20 @@ const AdminPortal: React.FC = () => {
                   
                   <div className="text-right flex flex-col items-end">
                     <p className="font-bold text-4xl text-slate-900 font-serif mb-2">£{order.totalPrice.toFixed(2)}</p>
-                    <button 
-                      onClick={() => handleCancelOrder(order.id)} 
-                      className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
-                    >
-                      Delete Order
-                    </button>
+                    <div className="flex flex-col items-end gap-2">
+                      <button 
+                        onClick={() => navigate(`/invoice/${order.id}`)}
+                        className="text-[10px] font-black text-pink-600 hover:text-pink-800 uppercase tracking-[0.3em] transition-all"
+                      >
+                        View Invoice
+                      </button>
+                      <button 
+                        onClick={() => handleCancelOrder(order.id)} 
+                        className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
+                      >
+                        Delete Order
+                      </button>
+                    </div>
                   </div>
                 </div>
 

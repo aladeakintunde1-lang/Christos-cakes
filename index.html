@@ -19,22 +19,29 @@
         body {
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: contain; /* Prevents "pull to refresh" bounce in some browsers if desired */
+            overscroll-behavior-y: contain;
         }
         h1, h2, h3, .font-serif {
             font-family: 'Playfair Display', serif;
         }
-        /* Handle iOS safe areas */
         .pb-safe {
             padding-bottom: env(safe-area-inset-bottom);
         }
         .pt-safe {
             padding-top: env(safe-area-inset-top);
         }
-        /* Custom scrollbar for a cleaner mobile look */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
+        }
+        /* Custom decorative styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(219, 39, 119, 0.2);
         }
     </style>
 <script type="importmap">
@@ -48,8 +55,10 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-slate-50 text-slate-900 selection:bg-pink-100 selection:text-pink-900">
     <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

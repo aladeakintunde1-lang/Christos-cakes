@@ -40,7 +40,18 @@ export interface Zone {
   locale: string;
 }
 
+export interface Invoice {
+  orderId: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+}
+
 export enum UserRole {
   CUSTOMER = 'CUSTOMER',
   ADMIN = 'ADMIN'
+}
+
+export interface Settings {
+  logoUrl: string;
 }
