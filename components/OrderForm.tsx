@@ -98,7 +98,7 @@ const OrderForm: React.FC = () => {
         await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(finalOrder)
+          body: JSON.stringify({ ...finalOrder, appUrl: window.location.origin })
         });
       } catch (err) {
         console.error('Failed to send order to n8n:', err);

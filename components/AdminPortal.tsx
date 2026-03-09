@@ -477,31 +477,6 @@ const AdminPortal: React.FC = () => {
                       >
                         View Invoice
                       </button>
-                      {order.totalPrice !== undefined && order.totalPrice > 0 && (
-                        <button 
-                          onClick={async () => {
-                            if (N8N_WEBHOOK_URL) {
-                              try {
-                                await fetch(N8N_WEBHOOK_URL, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ ...order, type: 'SEND_INVOICE' })
-                                });
-                                setLastAction('Invoice email triggered');
-                                setTimeout(() => setLastAction(null), 3000);
-                              } catch (err) {
-                                console.error(err);
-                                alert('Failed to trigger email');
-                              }
-                            } else {
-                              alert('n8n Webhook URL not configured');
-                            }
-                          }}
-                          className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-[0.3em] transition-all"
-                        >
-                          Send Invoice Email
-                        </button>
-                      )}
                       <button 
                         onClick={() => handleCancelOrder(order.id)} 
                         className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
@@ -575,6 +550,31 @@ const AdminPortal: React.FC = () => {
                           }}
                         />
                       </div>
+                      
+                      <button 
+                        disabled={!order.totalPrice || order.totalPrice <= 0}
+                        onClick={async () => {
+                          if (N8N_WEBHOOK_URL) {
+                            try {
+                              await fetch(N8N_WEBHOOK_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...order, type: 'SEND_INVOICE', appUrl: window.location.origin })
+                              });
+                              setLastAction('Invoice email triggered');
+                              setTimeout(() => setLastAction(null), 3000);
+                            } catch (err) {
+                              console.error(err);
+                              alert('Failed to trigger email');
+                            }
+                          } else {
+                            alert('n8n Webhook URL not configured');
+                          }
+                        }}
+                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300"
+                      >
+                        Send Invoice to Client
+                      </button>
                     </div>
                   </div>
                 </div>
