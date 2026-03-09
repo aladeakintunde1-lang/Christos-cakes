@@ -57,6 +57,22 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
   }
 };
 
+export const updateOrderPrice = async (orderId: string, totalPrice: number, deliveryFee: number) => {
+  const orders = getOrders();
+  const index = orders.findIndex(o => o.id === orderId);
+  if (index !== -1) {
+    orders[index].totalPrice = totalPrice;
+    orders[index].deliveryFee = deliveryFee;
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    
+    try {
+      await supabase.from('orders').update({ totalPrice, deliveryFee }).eq('id', orderId);
+    } catch (error) {
+      console.error('Supabase updateOrderPrice error:', error);
+    }
+  }
+};
+
 export const deleteOrder = async (orderId: string) => {
   const orders = getOrders();
   const filtered = orders.filter(o => o.id !== orderId);

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   getOrders, 
   updateOrderStatus, 
+  updateOrderPrice,
   deleteOrder, 
   getGalleryImages, 
   addGalleryImage, 
@@ -13,6 +14,8 @@ import {
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
+
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -462,7 +465,11 @@ const AdminPortal: React.FC = () => {
                   </div>
                   
                   <div className="text-right flex flex-col items-end">
-                    <p className="font-bold text-4xl text-slate-900 font-serif mb-2">£{order.totalPrice.toFixed(2)}</p>
+                    {order.totalPrice ? (
+                      <p className="font-bold text-4xl text-slate-900 font-serif mb-2">£{order.totalPrice.toFixed(2)}</p>
+                    ) : (
+                      <p className="font-black text-xs text-pink-600 uppercase tracking-widest mb-4 bg-pink-50 px-4 py-2 rounded-full">Price Pending</p>
+                    )}
                     <div className="flex flex-col items-end gap-2">
                       <button 
                         onClick={() => navigate(`/invoice/${order.id}`)}
@@ -470,6 +477,31 @@ const AdminPortal: React.FC = () => {
                       >
                         View Invoice
                       </button>
+                      {order.totalPrice !== undefined && order.totalPrice > 0 && (
+                        <button 
+                          onClick={async () => {
+                            if (N8N_WEBHOOK_URL) {
+                              try {
+                                await fetch(N8N_WEBHOOK_URL, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ ...order, type: 'SEND_INVOICE' })
+                                });
+                                setLastAction('Invoice email triggered');
+                                setTimeout(() => setLastAction(null), 3000);
+                              } catch (err) {
+                                console.error(err);
+                                alert('Failed to trigger email');
+                              }
+                            } else {
+                              alert('n8n Webhook URL not configured');
+                            }
+                          }}
+                          className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-[0.3em] transition-all"
+                        >
+                          Send Invoice Email
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleCancelOrder(order.id)} 
                         className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
@@ -480,7 +512,7 @@ const AdminPortal: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors flex flex-col">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Specifications</p>
                     <p className="text-xl font-bold text-slate-800">{order.size} {order.flavor}</p>
@@ -507,6 +539,43 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
+                  </div>
+                  <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">
+                    <p className="text-[10px] font-black text-pink-400 uppercase mb-4 tracking-widest">Price Management</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Base Price (£)</label>
+                        <input 
+                          type="number" 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-pink-300"
+                          defaultValue={order.totalPrice ? (order.totalPrice - (order.deliveryFee || 0)) : 0}
+                          onBlur={(e) => {
+                            const base = parseFloat(e.target.value) || 0;
+                            const fee = order.deliveryFee || 0;
+                            updateOrderPrice(order.id, base + fee, fee);
+                            refreshData();
+                            setLastAction('Price updated');
+                            setTimeout(() => setLastAction(null), 2000);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Delivery Fee (£)</label>
+                        <input 
+                          type="number" 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-pink-300"
+                          defaultValue={order.deliveryFee || 0}
+                          onBlur={(e) => {
+                            const fee = parseFloat(e.target.value) || 0;
+                            const base = (order.totalPrice || 0) - (order.deliveryFee || 0);
+                            updateOrderPrice(order.id, base + fee, fee);
+                            refreshData();
+                            setLastAction('Delivery fee updated');
+                            setTimeout(() => setLastAction(null), 2000);
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

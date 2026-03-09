@@ -161,11 +161,15 @@ const InvoiceView: React.FC = () => {
                     Custom Message: "{order.messageOnCake || 'No message requested'}"
                   </p>
                 </td>
-                <td className="py-8 px-4 text-right text-sm font-medium text-slate-600">£{(order.totalPrice - order.deliveryFee).toFixed(2)}</td>
+                <td className="py-8 px-4 text-right text-sm font-medium text-slate-600">
+                  {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                </td>
                 <td className="py-8 px-4 text-right text-sm font-medium text-slate-600">1</td>
-                <td className="py-8 px-4 text-right text-lg font-bold text-slate-900">£{(order.totalPrice - order.deliveryFee).toFixed(2)}</td>
+                <td className="py-8 px-4 text-right text-lg font-bold text-slate-900">
+                  {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                </td>
               </tr>
-              {order.deliveryFee > 0 && (
+              {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                 <tr>
                   <td className="py-8 px-4">
                     <p className="text-lg font-bold text-slate-800 font-serif">Luxury Delivery Service</p>
@@ -207,7 +211,7 @@ const InvoiceView: React.FC = () => {
           <div className="lg:col-span-5 space-y-4">
             <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
               <span>Subtotal</span>
-              <span className="text-slate-900">£{order.totalPrice.toFixed(2)}</span>
+              <span className="text-slate-900">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
             </div>
             <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
               <span>VAT (0%)</span>
@@ -215,7 +219,7 @@ const InvoiceView: React.FC = () => {
             </div>
             <div className="flex justify-between items-center bg-slate-900 text-white p-8 rounded-3xl shadow-xl shadow-slate-200">
               <span className="text-xs font-black uppercase tracking-[0.3em]">Total Amount</span>
-              <span className="text-4xl font-bold font-serif">£{order.totalPrice.toFixed(2)}</span>
+              <span className="text-4xl font-bold font-serif">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
             </div>
             <div className="pt-4 px-4 text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payment Method</p>

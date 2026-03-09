@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FLAVORS, SIZES, SHOP_POSTCODE, PRICE_PER_MILE, MIN_DELIVERY_FEE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
+import { FLAVORS, SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
+
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const OrderForm: React.FC = () => {
   const navigate = useNavigate();
@@ -45,8 +47,6 @@ const OrderForm: React.FC = () => {
       try {
         const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
-        const fee = Math.max(MIN_DELIVERY_FEE, miles * PRICE_PER_MILE);
-        setOrder(prev => ({ ...prev, deliveryFee: fee }));
       } catch (error) {
         console.error(error);
       } finally {
@@ -54,7 +54,6 @@ const OrderForm: React.FC = () => {
       }
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, deliveryFee: 0 }));
     }
   };
 
@@ -83,14 +82,30 @@ const OrderForm: React.FC = () => {
     }
   };
 
-  const handleFinish = () => {
-    const basePrice = SIZES.find(s => s.label === order.size)?.price || 0;
+  const handleFinish = async () => {
+    setLoading(true);
     const finalOrder = {
       ...order,
-      totalPrice: basePrice + (order.deliveryFee || 0),
+      totalPrice: 0,
+      deliveryFee: 0,
     } as Order;
     
     saveOrder(finalOrder);
+
+    // Send to n8n if configured
+    if (N8N_WEBHOOK_URL) {
+      try {
+        await fetch(N8N_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(finalOrder)
+        });
+      } catch (err) {
+        console.error('Failed to send order to n8n:', err);
+      }
+    }
+
+    setLoading(false);
     setIsSuccess(true);
     
     // Simulate real notification sound or haptic feedback intent
@@ -257,10 +272,6 @@ const OrderForm: React.FC = () => {
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
                       <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Delivery Fee</span>
-                      <span className="text-sm font-black text-pink-900">£{order.deliveryFee?.toFixed(2)}</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -405,7 +416,6 @@ const OrderForm: React.FC = () => {
                     className={`p-5 rounded-2xl border-2 text-left transition-all ${order.size === s.label ? 'border-pink-500 bg-pink-50/50 shadow-lg shadow-pink-100' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <div className="text-xs font-black uppercase tracking-widest mb-1">{s.label}</div>
-                    <div className="text-[10px] text-slate-400 font-bold tracking-widest">£{s.price}</div>
                   </button>
                 ))}
               </div>
@@ -517,27 +527,18 @@ const OrderForm: React.FC = () => {
             )}
 
             <div className="bg-slate-50/80 backdrop-blur-md p-8 rounded-[2rem] space-y-4 border border-slate-100 shadow-inner">
-              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
-                <span>Base Cake Price</span>
-                <span className="text-slate-900">£{SIZES.find(s => s.label === order.size)?.price.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
-                <span>Delivery Charge {calculatedDistance ? `(${calculatedDistance.toFixed(1)} miles)` : ''}</span>
-                <span className="text-slate-900">£{order.deliveryFee?.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-black text-3xl pt-6 border-t border-slate-200">
-                <span className="font-serif">Total</span>
-                <span className="text-pink-600">£{( (SIZES.find(s => s.label === order.size)?.price || 0) + (order.deliveryFee || 0) ).toFixed(2)}</span>
-              </div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
+                Price will be calculated by the baker after review.
+              </p>
             </div>
           </div>
 
           <button 
-            disabled={!order.customerName || !order.phone || !order.email}
+            disabled={!order.customerName || !order.phone || !order.email || loading}
             onClick={handleFinish}
             className="w-full bg-pink-600 text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-pink-100 hover:bg-pink-700 active:scale-[0.98] transition-all flex items-center justify-center gap-4 uppercase tracking-widest disabled:opacity-50"
           >
-            Place Bespoke Order
+            {loading ? 'Processing...' : 'Place Bespoke Order'}
           </button>
         </div>
       )}

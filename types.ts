@@ -11,7 +11,7 @@ export interface Order {
   fulfillmentType: FulfillmentType;
   postcode?: string;
   address?: string;
-  deliveryFee: number;
+  deliveryFee?: number;
   deliveryDate: string;
   deliveryTimeSlot: string;
   flavor: string;
@@ -19,7 +19,7 @@ export interface Order {
   messageOnCake: string;
   inspirationImage?: string; // Base64
   inspirationLink?: string;
-  totalPrice: number;
+  totalPrice?: number;
   status: OrderStatus;
   createdAt: string;
 }
