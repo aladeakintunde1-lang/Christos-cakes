@@ -499,15 +499,15 @@ const AdminPortal: React.FC = () => {
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Flavors & Fillings</span>
                         <p className="text-sm font-bold text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
                       </div>
-                      {order.inspirationImage && (
+                      {order.cakePrototype && (
                         <div className="mt-4">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Inspiration Image</span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Cake Prototype</span>
                           <div className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-white group/img">
                             <img 
-                              src={order.inspirationImage} 
+                              src={order.cakePrototype} 
                               alt="Inspiration" 
                               className="w-full h-auto block object-contain max-h-[150px] cursor-zoom-in hover:scale-105 transition-transform duration-500"
-                              onClick={() => window.open(order.inspirationImage, '_blank')}
+                              onClick={() => window.open(order.cakePrototype || '', '_blank')}
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none flex items-center justify-center">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -541,6 +541,12 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
+                    {order.fulfillmentType === 'Delivery' && order.calculatedDistance !== undefined && (
+                      <div className="mt-4 pt-4 border-t border-slate-200/50">
+                        <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest block mb-1">Calculated Distance</span>
+                        <p className="text-sm font-bold text-pink-600">{order.calculatedDistance.toFixed(1)} miles</p>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-pink-400 uppercase mb-4 tracking-widest">Price Management</p>

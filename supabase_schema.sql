@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS orders (
   flavor TEXT NOT NULL,
   size TEXT NOT NULL,
   messageOnCake TEXT,
-  inspirationImage TEXT,
+  cakePrototype TEXT,
   inspirationLink TEXT,
   totalPrice NUMERIC NOT NULL,
   status TEXT NOT NULL,

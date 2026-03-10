@@ -17,7 +17,7 @@ export interface Order {
   flavor: string;
   size: string;
   messageOnCake: string;
-  inspirationImage?: string; // Base64
+  cakePrototype?: string; // Base64
   inspirationLink?: string;
   calculatedDistance?: number;
   totalPrice?: number;

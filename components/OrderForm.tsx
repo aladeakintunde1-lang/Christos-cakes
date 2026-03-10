@@ -76,7 +76,7 @@ const OrderForm: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setOrder(prev => ({ ...prev, inspirationImage: reader.result as string }));
+        setOrder(prev => ({ ...prev, cakePrototype: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
@@ -332,7 +332,7 @@ const OrderForm: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
               <h3 className="text-xs font-black text-slate-800 mb-2 uppercase tracking-widest flex items-center gap-2">
-                Design Inspiration
+                Cake Prototype
               </h3>
               <p className="text-xs text-slate-400 mb-6 font-medium">Upload a screenshot or link from our Instagram gallery.</p>
               
@@ -357,16 +357,16 @@ const OrderForm: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-slate-300 mb-2 uppercase tracking-[0.2em]">Visual Reference</label>
+                  <label className="block text-[9px] font-black text-slate-300 mb-2 uppercase tracking-[0.2em]">Cake Prototype</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full min-h-[120px] p-6 bg-white border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-pink-300 hover:bg-pink-50/30 transition-all group"
                   >
-                    {order.inspirationImage ? (
+                    {order.cakePrototype ? (
                       <div className="relative w-full rounded-xl overflow-hidden bg-white shadow-inner">
-                        <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain max-h-[200px]" />
+                        <img src={order.cakePrototype} alt="Preview" className="w-full h-auto block object-contain max-h-[200px]" />
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, inspirationImage: undefined })) }}
+                          onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, cakePrototype: undefined })) }}
                           className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md text-white p-2 rounded-full shadow-lg"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
