@@ -13,6 +13,7 @@ import {
   getLogoUrl,
   saveLogoUrl
 } from '../utils/storage';
+import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
@@ -41,8 +42,26 @@ const AdminPortal: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Real-time Order Notification for Admin
+  // Real-time Sync for Admin
   useEffect(() => {
+    // Initial sync on mount
+    syncWithSupabase().then(() => refreshData());
+
+    // Subscribe to real-time changes
+    const ordersSubscription = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        syncWithSupabase().then(() => refreshData());
+      })
+      .subscribe();
+
+    const gallerySubscription = supabase
+      .channel('gallery-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery' }, () => {
+        syncWithSupabase().then(() => refreshData());
+      })
+      .subscribe();
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sweettrack_orders') {
         refreshData();
@@ -52,7 +71,11 @@ const AdminPortal: React.FC = () => {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      supabase.removeChannel(ordersSubscription);
+      supabase.removeChannel(gallerySubscription);
+    };
   }, []);
 
   const refreshData = () => {
@@ -207,24 +230,7 @@ const AdminPortal: React.FC = () => {
           <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
           <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
         </div>
-        <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto">
-          <button 
-            onClick={() => {
-              setLastAction('Syncing with cloud...');
-              syncWithSupabase().then(() => {
-                refreshData();
-                setLastAction('Data updated');
-                setTimeout(() => setLastAction(null), 2000);
-              });
-            }}
-            className="bg-white text-slate-900 px-6 py-3.5 rounded-2xl text-[10px] font-black tracking-widest border border-slate-200 hover:bg-slate-50 transition-all shadow-sm flex items-center justify-center gap-2 uppercase"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Data
-          </button>
-          <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
+        <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setViewMode('Orders')}
             className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
@@ -250,8 +256,7 @@ const AdminPortal: React.FC = () => {
             Settings
           </button>
         </div>
-      </div>
-    </header>
+      </header>
 
       {viewMode === 'Insights' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

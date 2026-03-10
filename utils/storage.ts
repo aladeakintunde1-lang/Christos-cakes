@@ -51,7 +51,6 @@ export const saveOrder = async (order: Order) => {
     if (error) throw error;
   } catch (error) {
     console.error('Supabase saveOrder error:', error);
-    alert('Failed to sync order with cloud. It is saved locally but might not be visible to the baker until you refresh.');
   }
 };
 
