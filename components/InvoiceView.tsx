@@ -5,30 +5,24 @@ import { getOrders, getLogoUrl } from '../utils/storage';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
 
-interface InvoiceViewProps {
-  order?: Order;
-}
-
-const InvoiceView: React.FC<InvoiceViewProps> = ({ order: propOrder }) => {
+const InvoiceView: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<Order | null>(propOrder || null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
 
   useEffect(() => {
     const savedLogo = getLogoUrl();
     if (savedLogo) setBrandLogo(savedLogo);
 
-    if (propOrder) {
-      setOrder(propOrder);
-    } else if (orderId) {
+    if (orderId) {
       const orders = getOrders();
       const foundOrder = orders.find(o => o.id === orderId);
       if (foundOrder) {
         setOrder(foundOrder);
       }
     }
-  }, [orderId, propOrder]);
+  }, [orderId]);
 
   if (!order) {
     return (
