@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS orders (
   messageOnCake TEXT,
   cakePrototype TEXT,
   inspirationLink TEXT,
+  calculatedDistance NUMERIC,
   totalPrice NUMERIC NOT NULL,
   status TEXT NOT NULL,
   createdAt TEXT NOT NULL

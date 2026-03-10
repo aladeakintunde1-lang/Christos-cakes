@@ -74,6 +74,10 @@ const OrderForm: React.FC = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image is too large. Please upload a photo smaller than 2MB.');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setOrder(prev => ({ ...prev, cakePrototype: reader.result as string }));
@@ -91,7 +95,7 @@ const OrderForm: React.FC = () => {
       deliveryFee: 0,
     } as Order;
     
-    saveOrder(finalOrder);
+    await saveOrder(finalOrder);
 
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {
