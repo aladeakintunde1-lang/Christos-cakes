@@ -20,6 +20,7 @@ export interface Order {
   inspirationImage?: string; // Base64
   inspirationLink?: string;
   totalPrice?: number;
+  distance?: number;
   status: OrderStatus;
   createdAt: string;
 }

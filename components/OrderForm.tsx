@@ -88,6 +88,7 @@ const OrderForm: React.FC = () => {
       ...order,
       totalPrice: 0,
       deliveryFee: 0,
+      distance: calculatedDistance || undefined,
     } as Order;
     
     saveOrder(finalOrder);

@@ -522,6 +522,11 @@ const AdminPortal: React.FC = () => {
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
+                    {order.distance !== undefined && (
+                      <p className="text-xs font-black text-pink-600 uppercase tracking-widest mt-2">
+                        {order.distance.toFixed(1)} miles from studio
+                      </p>
+                    )}
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
                   </div>
                   <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">
