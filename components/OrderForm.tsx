@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FLAVORS, SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
+import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
@@ -21,7 +21,7 @@ const OrderForm: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
-    flavor: FLAVORS[0],
+    flavor: '',
     size: SIZES[0].label,
     deliveryFee: 0,
     status: 'Pending',
@@ -396,14 +396,14 @@ const OrderForm: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Flavor Selection</label>
-              <select 
-                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all font-bold text-slate-800"
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Flavor & Filling Preferences</label>
+              <textarea 
+                placeholder="Describe your desired flavors, fillings, and any dietary requirements (e.g. Vanilla with strawberry jam, Gluten Free...)"
+                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all h-32 text-sm font-medium leading-relaxed"
                 value={order.flavor}
                 onChange={e => setOrder(prev => ({ ...prev, flavor: e.target.value }))}
-              >
-                {FLAVORS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
+              />
+              <p className="text-[10px] text-slate-400 mt-2 font-medium italic">Feel free to list multiple flavors or specific combinations.</p>
             </div>
 
             <div>
@@ -496,9 +496,15 @@ const OrderForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Specifications</span>
-              <span className="font-bold text-sm text-slate-800">{order.size} {order.flavor}</span>
+            <div className="flex flex-col border-b border-slate-100 pb-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Specifications</span>
+              <div className="flex justify-between items-start">
+                <span className="font-bold text-sm text-slate-800">Size: {order.size}</span>
+              </div>
+              <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custom Flavor</span>
+                <p className="text-xs font-medium text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
+              </div>
             </div>
 
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">

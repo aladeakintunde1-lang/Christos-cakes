@@ -490,7 +490,16 @@ const AdminPortal: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors flex flex-col">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Specifications</p>
-                    <p className="text-xl font-bold text-slate-800">{order.size} {order.flavor}</p>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Size</span>
+                        <p className="text-lg font-bold text-slate-800">{order.size}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Flavors & Fillings</span>
+                        <p className="text-sm font-bold text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
+                      </div>
+                    </div>
                     <p className="text-sm text-slate-500 italic mt-4 leading-relaxed bg-white/50 p-4 rounded-xl">"{order.messageOnCake || 'No special message requested'}"</p>
                     
                     {order.inspirationLink && (

@@ -156,10 +156,17 @@ const InvoiceView: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               <tr>
                 <td className="py-8 px-4">
-                  <p className="text-lg font-bold text-slate-800 font-serif">{order.size} {order.flavor} Bespoke Cake</p>
-                  <p className="text-xs text-slate-400 mt-2 italic leading-relaxed max-w-md">
-                    Custom Message: "{order.messageOnCake || 'No message requested'}"
-                  </p>
+                  <p className="text-lg font-bold text-slate-800 font-serif">{order.size} Bespoke Cake</p>
+                  <div className="mt-3 space-y-2">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Flavors & Fillings</p>
+                      <p className="text-xs text-slate-600 leading-relaxed max-w-md">{order.flavor || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Custom Message</p>
+                      <p className="text-xs text-slate-400 italic leading-relaxed max-w-md">"{order.messageOnCake || 'No message requested'}"</p>
+                    </div>
+                  </div>
                 </td>
                 <td className="py-8 px-4 text-right text-sm font-medium text-slate-600">
                   {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
