@@ -499,6 +499,24 @@ const AdminPortal: React.FC = () => {
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Flavors & Fillings</span>
                         <p className="text-sm font-bold text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
                       </div>
+                      {order.inspirationImage && (
+                        <div className="mt-4">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Inspiration Image</span>
+                          <div className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-white group/img">
+                            <img 
+                              src={order.inspirationImage} 
+                              alt="Inspiration" 
+                              className="w-full h-auto block object-contain max-h-[150px] cursor-zoom-in hover:scale-105 transition-transform duration-500"
+                              onClick={() => window.open(order.inspirationImage, '_blank')}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <p className="text-sm text-slate-500 italic mt-4 leading-relaxed bg-white/50 p-4 rounded-xl">"{order.messageOnCake || 'No special message requested'}"</p>
                     
@@ -522,11 +540,6 @@ const AdminPortal: React.FC = () => {
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
-                    {order.distance !== undefined && (
-                      <p className="text-xs font-black text-pink-600 uppercase tracking-widest mt-2">
-                        {order.distance.toFixed(1)} miles from studio
-                      </p>
-                    )}
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
                   </div>
                   <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">

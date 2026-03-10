@@ -19,8 +19,8 @@ export interface Order {
   messageOnCake: string;
   inspirationImage?: string; // Base64
   inspirationLink?: string;
+  calculatedDistance?: number;
   totalPrice?: number;
-  distance?: number;
   status: OrderStatus;
   createdAt: string;
 }
