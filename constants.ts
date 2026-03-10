@@ -27,7 +27,7 @@ export const SHOP_POSTCODE = 'TA21 9RH';
 
 export const PICKUP_ADDRESS = '7 Singh street, Wellington, TA21 9RH';
 
-export const ADMIN_PASSWORD = 'cake'; // Simple demo password
+export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'cake'; // Fallback for local dev only
 
 export const INSTAGRAM_URL = 'https://www.instagram.com/Christoscakes_events/';
 
