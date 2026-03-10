@@ -17,10 +17,10 @@ export interface Order {
   flavor: string;
   size: string;
   messageOnCake: string;
-  cakePrototype?: string; // Base64
+  inspirationImage?: string; // Base64
   inspirationLink?: string;
-  calculatedDistance?: number;
   totalPrice?: number;
+  distance?: number;
   status: OrderStatus;
   createdAt: string;
 }
