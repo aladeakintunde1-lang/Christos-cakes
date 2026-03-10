@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   getOrders, 
-  syncWithSupabase,
   updateOrderStatus, 
   updateOrderPrice,
   deleteOrder, 
@@ -13,7 +12,6 @@ import {
   getLogoUrl,
   saveLogoUrl
 } from '../utils/storage';
-import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
@@ -36,32 +34,14 @@ const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      syncWithSupabase().then(() => refreshData());
+      refreshData();
       const savedLogo = getLogoUrl();
       if (savedLogo) setCustomLogoUrl(savedLogo);
     }
   }, [isAuthenticated]);
 
-  // Real-time Sync for Admin
+  // Real-time Order Notification for Admin
   useEffect(() => {
-    // Initial sync on mount
-    syncWithSupabase().then(() => refreshData());
-
-    // Subscribe to real-time changes
-    const ordersSubscription = supabase
-      .channel('orders-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        syncWithSupabase().then(() => refreshData());
-      })
-      .subscribe();
-
-    const gallerySubscription = supabase
-      .channel('gallery-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery' }, () => {
-        syncWithSupabase().then(() => refreshData());
-      })
-      .subscribe();
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sweettrack_orders') {
         refreshData();
@@ -71,11 +51,7 @@ const AdminPortal: React.FC = () => {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      supabase.removeChannel(ordersSubscription);
-      supabase.removeChannel(gallerySubscription);
-    };
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const refreshData = () => {
@@ -523,15 +499,15 @@ const AdminPortal: React.FC = () => {
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Flavors & Fillings</span>
                         <p className="text-sm font-bold text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
                       </div>
-                      {order.cakePrototype && (
+                      {order.inspirationImage && (
                         <div className="mt-4">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Cake Prototype</span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Inspiration Image</span>
                           <div className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-white group/img">
                             <img 
-                              src={order.cakePrototype} 
+                              src={order.inspirationImage} 
                               alt="Inspiration" 
                               className="w-full h-auto block object-contain max-h-[150px] cursor-zoom-in hover:scale-105 transition-transform duration-500"
-                              onClick={() => window.open(order.cakePrototype || '', '_blank')}
+                              onClick={() => window.open(order.inspirationImage, '_blank')}
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors pointer-events-none flex items-center justify-center">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
