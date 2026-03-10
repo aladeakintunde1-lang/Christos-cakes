@@ -541,12 +541,6 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.fulfillmentType === 'Delivery' && order.calculatedDistance !== undefined && (
-                      <div className="mt-4 pt-4 border-t border-slate-200/50">
-                        <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest block mb-1">Calculated Distance</span>
-                        <p className="text-sm font-bold text-pink-600">{order.calculatedDistance.toFixed(1)} miles</p>
-                      </div>
-                    )}
                   </div>
                   <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-pink-400 uppercase mb-4 tracking-widest">Price Management</p>
