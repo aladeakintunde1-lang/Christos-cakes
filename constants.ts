@@ -9,6 +9,7 @@ export const ZONES: Zone[] = [
 
 export const SIZES = [
   { label: 'Small (6")' },
+  { label: '7"' },
   { label: 'Medium (8")' },
   { label: 'Large (10")' },
   { label: 'Extra Large (12")' },
