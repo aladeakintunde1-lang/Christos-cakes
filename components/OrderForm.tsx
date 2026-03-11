@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
-import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
+import { getCakeMessageSuggestion, calculateMileage } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
 
@@ -45,7 +45,7 @@ const OrderForm: React.FC = () => {
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
       try {
-        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
+        const miles = await calculateMileage(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
         // Calculate delivery fee: £1.50 per mile, minimum £5
         const fee = Math.max(5, Math.ceil(miles * 1.5));
