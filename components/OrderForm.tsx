@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FLAVORS, SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
-import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
+import { getCakeMessageSuggestion } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
 
@@ -15,9 +15,7 @@ const OrderForm: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [distanceLoading, setDistanceLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
@@ -38,29 +36,14 @@ const OrderForm: React.FC = () => {
     inspirationLink: '',
   });
 
-  const handlePostcodeChange = async (postcode: string) => {
+  const handlePostcodeChange = (postcode: string) => {
     const pc = postcode.toUpperCase().trim();
     setOrder(prev => ({ ...prev, postcode: pc }));
-    
-    if (UK_POSTCODE_REGEX.test(pc)) {
-      setDistanceLoading(true);
-      try {
-        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
-        setCalculatedDistance(miles);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setDistanceLoading(false);
-      }
-    } else {
-      setCalculatedDistance(null);
-    }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
       setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '' }));
-      setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
 
@@ -236,7 +219,7 @@ const OrderForm: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
               </svg>
               <div className="text-xs font-black uppercase tracking-widest">Delivery</div>
-              <div className="text-[10px] text-slate-400 font-bold">Calculated by Mile</div>
+              <div className="text-[10px] text-slate-400 font-bold">Calculated by Baker</div>
             </button>
           </div>
 
@@ -253,26 +236,13 @@ const OrderForm: React.FC = () => {
                   <input 
                     type="text" 
                     placeholder="e.g. TA21 9RH"
-                    className={`w-full p-4 bg-slate-50 rounded-2xl border-2 transition-all focus:bg-white outline-none uppercase font-bold text-slate-800 ${distanceLoading ? 'animate-pulse border-pink-100' : 'border-transparent focus:border-pink-200'}`}
+                    className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none uppercase font-bold text-slate-800 transition-all"
                     value={order.postcode}
                     onChange={e => handlePostcodeChange(e.target.value)}
                   />
-                  {distanceLoading && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-pink-500 animate-pulse">
-                      CALCULATING...
-                    </div>
-                  )}
                 </div>
-                {!isPostcodeValid() && order.postcode && !distanceLoading && (
+                {!isPostcodeValid() && order.postcode && (
                   <p className="text-red-500 text-[10px] font-bold mt-2 uppercase tracking-widest">Invalid UK postcode.</p>
-                )}
-                {calculatedDistance !== null && !distanceLoading && (
-                  <div className="mt-3 flex items-center justify-between p-4 bg-pink-50 rounded-xl border border-pink-100">
-                    <div>
-                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
-                      <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
-                    </div>
-                  </div>
                 )}
               </div>
               <div>
@@ -314,7 +284,7 @@ const OrderForm: React.FC = () => {
           </div>
 
           <button 
-            disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid() || distanceLoading}
+            disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid()}
             onClick={() => setStep(2)}
             className="w-full bg-slate-900 text-white py-5 rounded-2xl mt-10 font-black text-sm tracking-widest disabled:opacity-50 transition-all shadow-xl active:scale-[0.98] uppercase"
           >

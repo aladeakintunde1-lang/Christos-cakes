@@ -15,9 +15,6 @@ import {
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
-import { toPng } from 'html-to-image';
-import InvoiceView from './InvoiceView';
-
 const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const AdminPortal: React.FC = () => {
@@ -32,10 +29,8 @@ const AdminPortal: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
-  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -495,7 +490,16 @@ const AdminPortal: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                   <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 hover:bg-white transition-colors flex flex-col">
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Specifications</p>
-                    <p className="text-xl font-bold text-slate-800">{order.size} {order.flavor}</p>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Size</span>
+                        <p className="text-lg font-bold text-slate-800">{order.size}</p>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Flavors & Fillings</span>
+                        <p className="text-sm font-bold text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
+                      </div>
+                    </div>
                     <p className="text-sm text-slate-500 italic mt-4 leading-relaxed bg-white/50 p-4 rounded-xl">"{order.messageOnCake || 'No special message requested'}"</p>
                     
                     {order.inspirationLink && (
@@ -519,6 +523,12 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
+                    {order.estimatedMileage !== undefined && (
+                      <div className="mt-4 pt-4 border-t border-slate-200/50">
+                        <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
+                        <p className="text-lg font-black text-slate-900">{order.estimatedMileage.toFixed(1)} miles</p>
+                      </div>
+                    )}
                   </div>
                   <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100 hover:bg-white transition-colors">
                     <p className="text-[10px] font-black text-pink-400 uppercase mb-4 tracking-widest">Price Management</p>
@@ -557,66 +567,28 @@ const AdminPortal: React.FC = () => {
                       </div>
                       
                       <button 
-                        disabled={!order.totalPrice || order.totalPrice <= 0 || isSendingInvoice === order.id}
+                        disabled={!order.totalPrice || order.totalPrice <= 0}
                         onClick={async () => {
-                          if (!N8N_WEBHOOK_URL) {
-                            alert('n8n Webhook URL not configured');
-                            return;
-                          }
-
-                          setIsSendingInvoice(order.id);
-                          setLastAction('📸 Generating Invoice Image...');
-
-                          try {
-                            // Wait for the hidden invoice to render
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                            
-                            if (invoiceRef.current) {
-                              const dataUrl = await toPng(invoiceRef.current, {
-                                quality: 0.95,
-                                backgroundColor: '#ffffff',
-                                pixelRatio: 2,
-                              });
-
+                          if (N8N_WEBHOOK_URL) {
+                            try {
                               await fetch(N8N_WEBHOOK_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                  ...order, 
-                                  type: 'SEND_INVOICE_IMAGE', 
-                                  invoiceImage: dataUrl,
-                                  appUrl: window.location.origin 
-                                })
+                                body: JSON.stringify({ ...order, type: 'SEND_INVOICE', appUrl: window.location.origin })
                               });
-                              
-                              setLastAction('✅ Invoice Image Sent!');
+                              setLastAction('Invoice email triggered');
                               setTimeout(() => setLastAction(null), 3000);
+                            } catch (err) {
+                              console.error(err);
+                              alert('Failed to trigger email');
                             }
-                          } catch (err) {
-                            console.error('Failed to send invoice image:', err);
-                            alert('Failed to generate or send invoice image. Please try again.');
-                          } finally {
-                            setIsSendingInvoice(null);
+                          } else {
+                            alert('n8n Webhook URL not configured');
                           }
                         }}
-                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300 flex items-center justify-center gap-2"
+                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300"
                       >
-                        {isSendingInvoice === order.id ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Send Invoice Image
-                          </>
-                        )}
+                        Send Invoice to Client
                       </button>
                     </div>
                   </div>
@@ -649,14 +621,6 @@ const AdminPortal: React.FC = () => {
           )}
         </div>
       )}
-      {/* HIDDEN INVOICE RENDERER FOR IMAGE GENERATION */}
-      <div className="fixed -left-[9999px] top-0 w-[800px] pointer-events-none">
-        <div ref={invoiceRef}>
-          {isSendingInvoice && (
-            <InvoiceView order={orders.find(o => o.id === isSendingInvoice)} />
-          )}
-        </div>
-      </div>
     </div>
   );
 };

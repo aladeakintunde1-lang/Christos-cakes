@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS orders (
   inspirationLink TEXT,
   totalPrice NUMERIC NOT NULL,
   status TEXT NOT NULL,
+  distance NUMERIC,
   createdAt TEXT NOT NULL
 );
 
