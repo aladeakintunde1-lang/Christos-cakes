@@ -7,15 +7,6 @@ export const ZONES: Zone[] = [
   { name: 'Rest of UK', postcodes: [], fee: 45.00, locale: 'Nationwide (Mainland UK)' },
 ];
 
-export const FLAVORS = [
-  'Classic Vanilla & Raspberry',
-  'Rich Belgian Chocolate',
-  'Red Velvet & Cream Cheese',
-  'Lemon Drizzle with Curd',
-  'Salted Caramel & Lotus Biscoff',
-  'Pistachio & Rose Water',
-];
-
 export const SIZES = [
   { label: 'Small (6")' },
   { label: 'Medium (8")' },
