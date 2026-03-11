@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrders, getLogoUrl } from '../utils/storage';
 import { Order } from '../types';
-import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
+import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL, BANK_DETAILS } from '../constants';
 
 const InvoiceView: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -213,6 +213,31 @@ const InvoiceView: React.FC = () => {
                 <span>Store your luxury cake in a cool, dry place away from direct sunlight. Refrigeration recommended for fresh cream designs.</span>
               </li>
             </ul>
+            
+            <div className="mt-8 pt-8 border-t border-slate-200">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Bank Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-[11px]">
+                <div>
+                  <p className="text-slate-400 uppercase tracking-widest text-[9px] mb-0.5">Bank Name</p>
+                  <p className="font-bold text-slate-700">{BANK_DETAILS.bankName}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase tracking-widest text-[9px] mb-0.5">Account Name</p>
+                  <p className="font-bold text-slate-700">{BANK_DETAILS.accountName}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase tracking-widest text-[9px] mb-0.5">Sort Code</p>
+                  <p className="font-bold text-slate-700">{BANK_DETAILS.sortCode}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 uppercase tracking-widest text-[9px] mb-0.5">Account Number</p>
+                  <p className="font-bold text-slate-700">{BANK_DETAILS.accountNumber}</p>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-pink-50 rounded-xl border border-pink-100">
+                <p className="text-[10px] text-pink-700 font-bold italic">Reference: {BANK_DETAILS.reference}</p>
+              </div>
+            </div>
           </div>
           
           <div className="lg:col-span-5 space-y-4">
@@ -231,7 +256,7 @@ const InvoiceView: React.FC = () => {
             <div className="pt-4 px-4 text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payment Method</p>
               <p className="text-sm font-bold text-slate-800">Bank Transfer / Online</p>
-              <p className="text-[10px] text-slate-400 mt-1 italic">Ref: {invoiceNumber}</p>
+              <p className="text-[10px] text-slate-400 mt-1 italic">Ref: {BANK_DETAILS.reference}</p>
             </div>
           </div>
         </div>

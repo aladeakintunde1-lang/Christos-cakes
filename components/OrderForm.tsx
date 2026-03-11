@@ -270,7 +270,9 @@ const OrderForm: React.FC = () => {
                   <div className="mt-3 flex items-center justify-between p-4 bg-pink-50 rounded-xl border border-pink-100">
                     <div>
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
-                      <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
+                      <span className="text-sm font-black text-pink-900">
+                        {calculatedDistance > 0 ? `${calculatedDistance.toFixed(1)} miles` : 'Distance could not be calculated'}
+                      </span>
                     </div>
                   </div>
                 )}
