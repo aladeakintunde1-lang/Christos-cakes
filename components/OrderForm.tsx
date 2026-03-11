@@ -47,7 +47,6 @@ const OrderForm: React.FC = () => {
       try {
         const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
-        setOrder(prev => ({ ...prev, estimatedMileage: miles }));
       } catch (error) {
         console.error(error);
       } finally {
@@ -55,13 +54,12 @@ const OrderForm: React.FC = () => {
       }
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
     }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
-      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', estimatedMileage: undefined }));
+      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '' }));
       setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
@@ -88,6 +86,7 @@ const OrderForm: React.FC = () => {
     setLoading(true);
     const finalOrder = {
       ...order,
+      calculatedDistance: calculatedDistance || 0,
       totalPrice: 0,
       deliveryFee: 0,
     } as Order;
