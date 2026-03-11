@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
-import { getCakeMessageSuggestion, calculateMileage } from '../services/gemini';
+import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
 
@@ -45,11 +45,9 @@ const OrderForm: React.FC = () => {
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
       try {
-        const miles = await calculateMileage(SHOP_POSTCODE, pc);
+        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
-        // Calculate delivery fee: £1.50 per mile, minimum £5
-        const fee = Math.max(5, Math.ceil(miles * 1.5));
-        setOrder(prev => ({ ...prev, deliveryFee: fee }));
+        setOrder(prev => ({ ...prev, estimatedMileage: miles }));
       } catch (error) {
         console.error(error);
       } finally {
@@ -57,13 +55,13 @@ const OrderForm: React.FC = () => {
       }
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, deliveryFee: 0 }));
+      setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
     }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
-      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '' }));
+      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', estimatedMileage: undefined }));
       setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
@@ -91,6 +89,7 @@ const OrderForm: React.FC = () => {
     const finalOrder = {
       ...order,
       totalPrice: 0,
+      deliveryFee: 0,
     } as Order;
     
     saveOrder(finalOrder);
@@ -274,10 +273,6 @@ const OrderForm: React.FC = () => {
                     <div>
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
                       <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Est. Fee</span>
-                      <span className="text-sm font-black text-pink-900">£{order.deliveryFee}</span>
                     </div>
                   </div>
                 )}
@@ -540,14 +535,8 @@ const OrderForm: React.FC = () => {
             )}
 
             <div className="bg-slate-50/80 backdrop-blur-md p-8 rounded-[2rem] space-y-4 border border-slate-100 shadow-inner">
-              {order.fulfillmentType === 'Delivery' && order.deliveryFee ? (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Est. Delivery Fee</span>
-                  <span className="text-lg font-black text-slate-900">£{order.deliveryFee}</span>
-                </div>
-              ) : null}
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
-                Cake price will be calculated by the baker after review.
+                Price will be calculated by the baker after review.
               </p>
             </div>
           </div>
