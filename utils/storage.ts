@@ -8,20 +8,31 @@ const SETTINGS_KEY = 'sweettrack_settings';
 
 // Helper to sync local storage with Supabase
 export const syncWithSupabase = async () => {
+  // Sync Orders
   try {
-    // Sync Orders
-    const { data: orders } = await supabase.from('orders').select('*');
+    const { data: orders, error } = await supabase.from('orders').select('*');
+    if (error) throw error;
     if (orders) localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  } catch (error) {
+    console.error('Failed to sync orders:', error);
+  }
 
-    // Sync Gallery
-    const { data: gallery } = await supabase.from('gallery').select('*');
+  // Sync Gallery
+  try {
+    const { data: gallery, error } = await supabase.from('gallery').select('*');
+    if (error) throw error;
     if (gallery) localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+  } catch (error) {
+    console.error('Failed to sync gallery:', error);
+  }
 
-    // Sync Settings
-    const { data: settings } = await supabase.from('settings').select('*').single();
+  // Sync Settings
+  try {
+    const { data: settings, error } = await supabase.from('settings').select('*').maybeSingle();
+    if (error) throw error;
     if (settings?.logoUrl) localStorage.setItem(SETTINGS_KEY, settings.logoUrl);
   } catch (error) {
-    console.error('Failed to sync with Supabase:', error);
+    console.error('Failed to sync settings:', error);
   }
 };
 
@@ -36,7 +47,8 @@ export const saveOrder = async (order: Order) => {
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
   
   try {
-    await supabase.from('orders').insert([order]);
+    const { error } = await supabase.from('orders').insert([order]);
+    if (error) throw error;
   } catch (error) {
     console.error('Supabase saveOrder error:', error);
   }
