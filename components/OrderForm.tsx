@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, ZONES } from '../constants';
+import { FLAVORS, SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
@@ -21,7 +21,7 @@ const OrderForm: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
-    flavor: '',
+    flavor: FLAVORS[0],
     size: SIZES[0].label,
     deliveryFee: 0,
     status: 'Pending',
@@ -39,41 +39,21 @@ const OrderForm: React.FC = () => {
   });
 
   const handlePostcodeChange = async (postcode: string) => {
-    // Normalize postcode: uppercase, trim, and ensure single space
-    const pc = postcode.toUpperCase().trim().replace(/\s+/g, ' ');
+    const pc = postcode.toUpperCase().trim();
     setOrder(prev => ({ ...prev, postcode: pc }));
     
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
       try {
-        // 1. Try Zone-based fee first (more reliable for local)
-        const outwardCode = pc.split(' ')[0];
-        const zone = ZONES.find(z => z.postcodes.includes(outwardCode));
-        
-        // 2. Get mileage from Gemini
         const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
-        
-        // 3. Calculate fee: Use zone fee if available, otherwise mileage-based
-        let fee = 0;
-        if (zone) {
-          fee = zone.fee;
-        } else {
-          // £1.50 per mile, min £5, max £50
-          fee = Math.min(50, Math.max(5, Math.round(miles * 1.5)));
-        }
-        
-        setOrder(prev => ({ ...prev, deliveryFee: fee }));
       } catch (error) {
-        console.error("Distance calculation failed:", error);
-        // Fallback to a flat fee if distance fails
-        setOrder(prev => ({ ...prev, deliveryFee: 15 }));
+        console.error(error);
       } finally {
         setDistanceLoading(false);
       }
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, deliveryFee: 0 }));
     }
   };
 
@@ -106,7 +86,8 @@ const OrderForm: React.FC = () => {
     setLoading(true);
     const finalOrder = {
       ...order,
-      totalPrice: 0, // Admin will set final price
+      totalPrice: 0,
+      deliveryFee: 0,
     } as Order;
     
     saveOrder(finalOrder);
@@ -291,10 +272,6 @@ const OrderForm: React.FC = () => {
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
                       <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Est. Fee</span>
-                      <span className="text-sm font-black text-pink-900">£{order.deliveryFee?.toFixed(2)}</span>
-                    </div>
                   </div>
                 )}
               </div>
@@ -419,14 +396,14 @@ const OrderForm: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Flavor & Filling Preferences</label>
-              <textarea 
-                placeholder="Describe your desired flavors, fillings, and any dietary requirements (e.g. Vanilla with strawberry jam, Gluten Free...)"
-                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all h-32 text-sm font-medium leading-relaxed"
+              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Flavor Selection</label>
+              <select 
+                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all font-bold text-slate-800"
                 value={order.flavor}
                 onChange={e => setOrder(prev => ({ ...prev, flavor: e.target.value }))}
-              />
-              <p className="text-[10px] text-slate-400 mt-2 font-medium italic">Feel free to list multiple flavors or specific combinations.</p>
+              >
+                {FLAVORS.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
             </div>
 
             <div>
@@ -519,15 +496,9 @@ const OrderForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col border-b border-slate-100 pb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Specifications</span>
-              <div className="flex justify-between items-start">
-                <span className="font-bold text-sm text-slate-800">Size: {order.size}</span>
-              </div>
-              <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custom Flavor</span>
-                <p className="text-xs font-medium text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
-              </div>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Specifications</span>
+              <span className="font-bold text-sm text-slate-800">{order.size} {order.flavor}</span>
             </div>
 
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">

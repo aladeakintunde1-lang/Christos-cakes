@@ -5,24 +5,30 @@ import { getOrders, getLogoUrl } from '../utils/storage';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
 
-const InvoiceView: React.FC = () => {
+interface InvoiceViewProps {
+  order?: Order;
+}
+
+const InvoiceView: React.FC<InvoiceViewProps> = ({ order: propOrder }) => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<Order | null>(propOrder || null);
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
 
   useEffect(() => {
     const savedLogo = getLogoUrl();
     if (savedLogo) setBrandLogo(savedLogo);
 
-    if (orderId) {
+    if (propOrder) {
+      setOrder(propOrder);
+    } else if (orderId) {
       const orders = getOrders();
       const foundOrder = orders.find(o => o.id === orderId);
       if (foundOrder) {
         setOrder(foundOrder);
       }
     }
-  }, [orderId]);
+  }, [orderId, propOrder]);
 
   if (!order) {
     return (
@@ -156,17 +162,10 @@ const InvoiceView: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               <tr>
                 <td className="py-8 px-4">
-                  <p className="text-lg font-bold text-slate-800 font-serif">{order.size} Bespoke Cake</p>
-                  <div className="mt-3 space-y-2">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Flavors & Fillings</p>
-                      <p className="text-xs text-slate-600 leading-relaxed max-w-md">{order.flavor || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Custom Message</p>
-                      <p className="text-xs text-slate-400 italic leading-relaxed max-w-md">"{order.messageOnCake || 'No message requested'}"</p>
-                    </div>
-                  </div>
+                  <p className="text-lg font-bold text-slate-800 font-serif">{order.size} {order.flavor} Bespoke Cake</p>
+                  <p className="text-xs text-slate-400 mt-2 italic leading-relaxed max-w-md">
+                    Custom Message: "{order.messageOnCake || 'No message requested'}"
+                  </p>
                 </td>
                 <td className="py-8 px-4 text-right text-sm font-medium text-slate-600">
                   {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
@@ -193,54 +192,26 @@ const InvoiceView: React.FC = () => {
 
         {/* TOTALS & TERMS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-7 space-y-8">
-            <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Terms & Conditions</h3>
-              <ul className="text-[10px] text-slate-500 space-y-3 leading-relaxed">
-                <li className="flex gap-3">
-                  <span className="text-pink-500 font-bold">01</span>
-                  <span>A 50% non refundable deposit is require to confirm all custom cake orders.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-500 font-bold">02</span>
-                  <span>The deposit must be paid minimum of 6weeks before collection date to secure your booking.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-500 font-bold">03</span>
-                  <span>The remaining 50% balance must be paid atleast 2weeks before collection/delivery date.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-500 font-bold">04</span>
-                  <span>Store your luxury cake in a cool, dry place away from direct sunlight. Refrigeration recommended for fresh cream designs.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100/50">
-              <h3 className="text-[10px] font-black text-pink-400 uppercase tracking-[0.3em] mb-6">Bank Transfer Details</h3>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-                <div>
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Bank Name</p>
-                  <p className="text-sm font-bold text-slate-800">Monzo</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Account Name</p>
-                  <p className="text-sm font-bold text-slate-800">Christianah Alade</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Sort Code</p>
-                  <p className="text-sm font-bold text-slate-800 font-mono">04-00-03</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Account Number</p>
-                  <p className="text-sm font-bold text-slate-800 font-mono">90709406</p>
-                </div>
-                <div className="col-span-2 pt-2 border-t border-pink-100/50">
-                  <p className="text-[9px] font-black text-pink-400 uppercase tracking-widest mb-1">Reference</p>
-                  <p className="text-xs font-bold text-pink-600 italic">Your name only please</p>
-                </div>
-              </div>
-            </div>
+          <div className="lg:col-span-7 bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Terms & Conditions</h3>
+            <ul className="text-[10px] text-slate-500 space-y-3 leading-relaxed">
+              <li className="flex gap-3">
+                <span className="text-pink-500 font-bold">01</span>
+                <span>A 50% non refundable deposit is require to confirm all custom cake orders.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-pink-500 font-bold">02</span>
+                <span>The deposit must be paid minimum of 6weeks before collection date to secure your booking.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-pink-500 font-bold">03</span>
+                <span>The remaining 50% balance must be paid atleast 2weeks before collection/delivery date.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="text-pink-500 font-bold">04</span>
+                <span>Store your luxury cake in a cool, dry place away from direct sunlight. Refrigeration recommended for fresh cream designs.</span>
+              </li>
+            </ul>
           </div>
           
           <div className="lg:col-span-5 space-y-4">
@@ -258,8 +229,8 @@ const InvoiceView: React.FC = () => {
             </div>
             <div className="pt-4 px-4 text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payment Method</p>
-              <p className="text-sm font-bold text-slate-800">Bank Transfer</p>
-              <p className="text-[10px] text-slate-400 mt-1 italic">Please use your name as reference</p>
+              <p className="text-sm font-bold text-slate-800">Bank Transfer / Online</p>
+              <p className="text-[10px] text-slate-400 mt-1 italic">Ref: {invoiceNumber}</p>
             </div>
           </div>
         </div>
