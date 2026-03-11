@@ -1,7 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FLAVORS, SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
+import { 
+  FLAVORS, 
+  SIZES, 
+  SHOP_POSTCODE, 
+  PICKUP_ADDRESS, 
+  INSTAGRAM_URL 
+} from '../constants';
 import { getCakeMessageSuggestion } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
