@@ -138,6 +138,12 @@ const InvoiceView: React.FC = () => {
                   <p className="text-sm font-bold text-slate-800">{order.deliveryTimeSlot}</p>
                 </div>
               </div>
+              {order.fulfillmentType === 'Delivery' && order.calculatedDistance !== undefined && (
+                <div className="pt-4 border-t border-slate-50">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Estimated Distance</p>
+                  <p className="text-sm font-bold text-pink-600">{order.calculatedDistance.toFixed(1)} miles from Studio</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
