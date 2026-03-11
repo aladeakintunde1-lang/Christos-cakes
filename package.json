@@ -10,20 +10,20 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.38.0",
-    "@supabase/supabase-js": "^2.97.0",
+    "@google/genai": "^1.44.0",
+    "@supabase/supabase-js": "^2.99.0",
     "@tailwindcss/vite": "^4.2.1",
     "html-to-image": "^1.11.13",
-    "motion": "^12.34.5",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "react-router-dom": "^7.12.0",
+    "motion": "^12.35.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
   }
 }
