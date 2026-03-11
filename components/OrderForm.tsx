@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
+import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, ZONES } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
 import { Order, FulfillmentType } from '../types';
@@ -39,21 +39,41 @@ const OrderForm: React.FC = () => {
   });
 
   const handlePostcodeChange = async (postcode: string) => {
-    const pc = postcode.toUpperCase().trim();
+    // Normalize postcode: uppercase, trim, and ensure single space
+    const pc = postcode.toUpperCase().trim().replace(/\s+/g, ' ');
     setOrder(prev => ({ ...prev, postcode: pc }));
     
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
       try {
+        // 1. Try Zone-based fee first (more reliable for local)
+        const outwardCode = pc.split(' ')[0];
+        const zone = ZONES.find(z => z.postcodes.includes(outwardCode));
+        
+        // 2. Get mileage from Gemini
         const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
+        
+        // 3. Calculate fee: Use zone fee if available, otherwise mileage-based
+        let fee = 0;
+        if (zone) {
+          fee = zone.fee;
+        } else {
+          // £1.50 per mile, min £5, max £50
+          fee = Math.min(50, Math.max(5, Math.round(miles * 1.5)));
+        }
+        
+        setOrder(prev => ({ ...prev, deliveryFee: fee }));
       } catch (error) {
-        console.error(error);
+        console.error("Distance calculation failed:", error);
+        // Fallback to a flat fee if distance fails
+        setOrder(prev => ({ ...prev, deliveryFee: 15 }));
       } finally {
         setDistanceLoading(false);
       }
     } else {
       setCalculatedDistance(null);
+      setOrder(prev => ({ ...prev, deliveryFee: 0 }));
     }
   };
 
@@ -86,8 +106,7 @@ const OrderForm: React.FC = () => {
     setLoading(true);
     const finalOrder = {
       ...order,
-      totalPrice: 0,
-      deliveryFee: 0,
+      totalPrice: 0, // Admin will set final price
     } as Order;
     
     saveOrder(finalOrder);
@@ -271,6 +290,10 @@ const OrderForm: React.FC = () => {
                     <div>
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
                       <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Est. Fee</span>
+                      <span className="text-sm font-black text-pink-900">£{order.deliveryFee?.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
