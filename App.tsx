@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import CustomerPortal from './components/CustomerPortal';
 import AdminPortal from './components/AdminPortal';
 import OrderForm from './components/OrderForm';
@@ -40,7 +40,7 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Navigation role={role} setRole={setRole} />
         <main className="flex-grow max-w-4xl mx-auto w-full px-4 pt-6 pb-24 md:pb-12 md:pt-28">
@@ -52,7 +52,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
       </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 

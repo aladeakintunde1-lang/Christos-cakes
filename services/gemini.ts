@@ -14,7 +14,7 @@ const getAi = () => {
   return aiInstance;
 };
 
-export const getCakeMessageSuggestion = async (occasion: string, recipient: string, tone: string) => {
+const getCakeMessageSuggestion = async (occasion: string, recipient: string, tone: string) => {
   try {
     const ai = getAi();
     const response = await ai.models.generateContent({
@@ -36,7 +36,7 @@ export const getCakeMessageSuggestion = async (occasion: string, recipient: stri
   }
 };
 
-export const getDistanceBetweenPostcodes = async (from: string, to: string) => {
+const calculateMileage = async (from: string, to: string) => {
   try {
     const ai = getAi();
     const response = await ai.models.generateContent({
@@ -62,3 +62,5 @@ export const getDistanceBetweenPostcodes = async (from: string, to: string) => {
     return 0;
   }
 };
+
+export { getCakeMessageSuggestion, calculateMileage };
