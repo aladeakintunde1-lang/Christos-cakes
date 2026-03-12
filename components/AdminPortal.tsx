@@ -31,6 +31,7 @@ const AdminPortal: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
+  const [dbError, setDbError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,7 +69,15 @@ const AdminPortal: React.FC = () => {
   }, []);
 
   const refreshData = async () => {
-    await syncWithSupabase();
+    try {
+      await syncWithSupabase();
+      setDbError(null);
+    } catch (err: any) {
+      console.error('Sync error:', err);
+      if (err?.message?.includes('relation "orders" does not exist')) {
+        setDbError('DATABASE NOT FOUND: Please run the SQL schema in your Supabase dashboard.');
+      }
+    }
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
   };
@@ -264,6 +273,20 @@ const AdminPortal: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {dbError && (
+        <div className="mb-12 p-6 bg-red-50 border border-red-100 rounded-[2rem] text-red-600 text-xs font-bold flex items-center gap-4 animate-pulse shadow-xl shadow-red-100/50">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <p className="uppercase tracking-widest text-[10px] mb-1">Database Connection Error</p>
+            <p className="text-sm">{dbError}</p>
+          </div>
+        </div>
+      )}
 
       {viewMode === 'Insights' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

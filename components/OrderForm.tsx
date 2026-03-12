@@ -156,9 +156,17 @@ const OrderForm: React.FC = () => {
       if ('vibrate' in navigator) {
         navigator.vibrate([100, 50, 100]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Final save error:', err);
-      setError('Failed to save your order to the cloud. Please check your connection and try again.');
+      let msg = 'Failed to save your order to the cloud. Please check your connection and try again.';
+      
+      if (err?.message?.includes('404') || err?.code === 'PGRST116' || err?.message?.includes('relation "orders" does not exist')) {
+        msg = 'Database error: The "orders" table was not found. Please ensure you have run the SQL schema in your Supabase dashboard.';
+      } else if (err?.message?.includes('permission denied') || err?.code === '42501') {
+        msg = 'Database error: Permission denied. Please ensure you have enabled RLS policies in your Supabase dashboard.';
+      }
+
+      setError(msg);
       setLoading(false);
     }
   };
