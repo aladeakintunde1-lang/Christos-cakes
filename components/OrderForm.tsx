@@ -38,24 +38,31 @@ const OrderForm: React.FC = () => {
     inspirationLink: '',
   });
 
-  const handlePostcodeChange = async (postcode: string) => {
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePostcodeChange = (postcode: string) => {
     const pc = postcode.toUpperCase().trim();
     setOrder(prev => ({ ...prev, postcode: pc }));
     
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
-      try {
-        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
-        setCalculatedDistance(miles);
-        setOrder(prev => ({ ...prev, estimatedMileage: miles }));
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setDistanceLoading(false);
-      }
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
+          setCalculatedDistance(miles);
+          setOrder(prev => ({ ...prev, estimatedMileage: miles }));
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setDistanceLoading(false);
+        }
+      }, 800);
     } else {
       setCalculatedDistance(null);
       setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
+      setDistanceLoading(false);
     }
   };
 

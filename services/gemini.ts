@@ -7,7 +7,9 @@ const getAi = () => {
   if (!aiInstance) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not defined. Please ensure it is set in your environment.");
+      const errorMsg = "GEMINI_API_KEY is not defined. If you are seeing this on Vercel, ensure you have added GEMINI_API_KEY to your Environment Variables in the Vercel Dashboard.";
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
     aiInstance = new GoogleGenAI({ apiKey });
   }
@@ -29,7 +31,9 @@ export const getCakeMessageSuggestion = async (occasion: string, recipient: stri
       }
     });
     
-    return JSON.parse(response.text || "[]");
+    const text = response.text?.trim() || "[]";
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : text);
   } catch (error) {
     console.error("Gemini Error:", error);
     return ["Happy Birthday!", "Congratulations!", "Best Wishes!"];
@@ -40,9 +44,10 @@ export const getDistanceBetweenPostcodes = async (from: string, to: string) => {
   try {
     const ai = getAi();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-pro-preview',
       contents: `Calculate the estimated driving distance in miles between the UK postcodes "${from}" and "${to}". 
-      Return the result as a JSON object with a single field "miles" which is a number.`,
+      Return the result as a JSON object with a single field "miles" which is a number. 
+      If you are unsure, provide your best estimate based on the distance between these areas.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -55,8 +60,14 @@ export const getDistanceBetweenPostcodes = async (from: string, to: string) => {
       }
     });
 
-    const data = JSON.parse(response.text || '{"miles": 0}');
-    return data.miles as number;
+    const text = response.text?.trim();
+    if (!text) return 0;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+
+    const data = JSON.parse(jsonStr);
+    return Number(data.miles) || 0;
   } catch (error) {
     console.error("Distance Calculation Error:", error);
     return 0;

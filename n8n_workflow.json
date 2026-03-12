@@ -1,0 +1,215 @@
+{
+  "name": "Christos Cakes - Order Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-order",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "christos-cakes-webhook"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$node[\"Webhook\"].json[\"body\"][\"type\"]}}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "SEND_INVOICE"
+            }
+          ]
+        }
+      },
+      "name": "Check Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "orders@christoscakes.com",
+        "toEmail": "={{$node[\"Webhook\"].json[\"body\"][\"email\"]}}",
+        "subject": "Invoice for your Christos Cakes order! (#{{$node[\"Webhook\"].json[\"body\"][\"id\"]}})",
+        "text": "=Hi {{$node[\"Webhook\"].json[\"body\"][\"customerName\"]}},\\n\\nYour bespoke cake order has been reviewed and priced.\\n\\nTotal Price: £{{$node[\"Webhook\"].json[\"body\"][\"totalPrice\"]}}\\n\\nYou can view your official invoice and payment details here: {{$node[\"Webhook\"].json[\"body\"][\"appUrl\"]}}/#/invoice/{{$node[\"Webhook\"].json[\"body\"][\"id\"]}}\\n\\nBest regards,\\nThe Christos Cakes Team",
+        "options": {}
+      },
+      "name": "Send Invoice Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        700,
+        150
+      ],
+      "credentials": {
+        "googleGmailOAuth2Api": {
+          "id": "YOUR_CREDENTIALS_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "customerName",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"customerName\"]}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"email\"]}}"
+            },
+            {
+              "name": "orderId",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"id\"]}}"
+            },
+            {
+              "name": "cakeDetails",
+              "value": "=Size: {{$node[\"Webhook\"].json[\"body\"][\"size\"]}}\\nFlavor: {{$node[\"Webhook\"].json[\"body\"][\"flavor\"]}}\\nMessage: {{$node[\"Webhook\"].json[\"body\"][\"messageOnCake\"]}}"
+            },
+            {
+              "name": "fulfillment",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"fulfillmentType\"]}} on {{$node[\"Webhook\"].json[\"body\"][\"deliveryDate\"]}} ({{$node[\"Webhook\"].json[\"body\"][\"deliveryTimeSlot\"]}})"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Format New Order",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        700,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "operation": "append",
+        "sheetId": "YOUR_GOOGLE_SHEET_ID",
+        "range": "A:F",
+        "options": {}
+      },
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [
+        950,
+        350
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIALS_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "orders@christoscakes.com",
+        "toEmail": "={{$node[\"Format New Order\"].json[\"email\"]}}",
+        "subject": "We've received your Christos Cakes order! (#{{$node[\"Format New Order\"].json[\"orderId\"]}})",
+        "text": "=Hi {{$node[\"Format New Order\"].json[\"customerName\"]}},\\n\\nThank you for choosing Christos Cakes! We've received your bespoke order and our baker is currently reviewing the design.\\n\\nOrder Details:\\n{{$node[\"Format New Order\"].json[\"cakeDetails\"]}}\\n\\nFulfillment: {{$node[\"Format New Order\"].json[\"fulfillment\"]}}\\n\\nYou can view your order status here: {{$node[\"Webhook\"].json[\"body\"][\"appUrl\"]}}/#/invoice/{{$node[\"Format New Order\"].json[\"orderId\"]}}\\n\\nWe will contact you shortly with a price quote.\\n\\nBest regards,\\nThe Christos Cakes Team",
+        "options": {}
+      },
+      "name": "Email Customer (New Order)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        950,
+        500
+      ],
+      "credentials": {
+        "googleGmailOAuth2Api": {
+          "id": "YOUR_CREDENTIALS_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "system@christoscakes.com",
+        "toEmail": "baker@christoscakes.com",
+        "subject": "NEW ORDER: {{$node[\"Format New Order\"].json[\"customerName\"]}}",
+        "text": "=New bespoke cake order received!\\n\\nCustomer: {{$node[\"Format New Order\"].json[\"customerName\"]}}\\nPhone: {{$node[\"Webhook\"].json[\"body\"][\"phone\"]}}\\n\\nDetails:\\n{{$node[\"Format New Order\"].json[\"cakeDetails\"]}}\\n\\nFulfillment: {{$node[\"Format New Order\"].json[\"fulfillment\"]}}\\n\\nView in Admin Portal: {{$node[\"Webhook\"].json[\"body\"][\"appUrl\"]}}/#/admin",
+        "options": {}
+      },
+      "name": "Notify Baker",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        950,
+        650
+      ],
+      "credentials": {
+        "googleGmailOAuth2Api": {
+          "id": "YOUR_CREDENTIALS_ID"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Type": {
+      "main": [
+        [
+          {
+            "node": "Send Invoice Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format New Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format New Order": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Customer (New Order)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Baker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "1"
+}

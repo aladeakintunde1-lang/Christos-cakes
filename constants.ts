@@ -9,7 +9,6 @@ export const ZONES: Zone[] = [
 
 export const SIZES = [
   { label: 'Small (6")' },
-  { label: 'Standard (7")' },
   { label: 'Medium (8")' },
   { label: 'Large (10")' },
   { label: 'Extra Large (12")' },
@@ -25,3 +24,11 @@ export const INSTAGRAM_URL = 'https://www.instagram.com/Christoscakes_events/';
 
 // Replace this URL with the actual URL of your uploaded logo
 export const LOGO_URL = 'https://picsum.photos/seed/christos-cakes-logo/400/400'; 
+
+export const BANK_DETAILS = {
+  bankName: 'Monzo',
+  sortCode: '04-00-03',
+  accountNumber: '90709406',
+  accountName: 'Christianah Alade',
+  reference: 'your name only please'
+};
