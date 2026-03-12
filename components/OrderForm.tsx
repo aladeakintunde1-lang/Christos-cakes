@@ -19,6 +19,7 @@ const OrderForm: React.FC = () => {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
     flavor: '',
@@ -52,7 +53,7 @@ const OrderForm: React.FC = () => {
         try {
           const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
           setCalculatedDistance(miles);
-          setOrder(prev => ({ ...prev, estimatedMileage: miles }));
+          setOrder(prev => ({ ...prev, distance: miles }));
         } catch (error) {
           console.error(error);
         } finally {
@@ -61,14 +62,14 @@ const OrderForm: React.FC = () => {
       }, 800);
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
+      setOrder(prev => ({ ...prev, distance: undefined }));
       setDistanceLoading(false);
     }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
-      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', estimatedMileage: undefined }));
+      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', distance: undefined }));
       setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
@@ -85,7 +86,34 @@ const OrderForm: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setOrder(prev => ({ ...prev, inspirationImage: reader.result as string }));
+        const img = new Image();
+        img.src = reader.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setOrder(prev => ({ ...prev, inspirationImage: compressedBase64 }));
+        };
       };
       reader.readAsDataURL(file);
     }
@@ -93,38 +121,45 @@ const OrderForm: React.FC = () => {
 
   const handleFinish = async () => {
     setLoading(true);
+    setError(null);
     const finalOrder = {
       ...order,
       totalPrice: 0,
       deliveryFee: 0,
     } as Order;
     
-    await saveOrder(finalOrder);
+    try {
+      await saveOrder(finalOrder);
 
-    // Send to n8n if configured
-    if (N8N_WEBHOOK_URL) {
-      try {
-        const baseUrl = (import.meta.env.VITE_APP_URL || window.location.href.split('#')[0]).replace(/\/$/, '');
-        await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ...finalOrder, 
-            appUrl: baseUrl + '/',
-            adminUrl: baseUrl + '/#/admin'
-          })
-        });
-      } catch (err) {
-        console.error('Failed to send order to n8n:', err);
+      // Send to n8n if configured
+      if (N8N_WEBHOOK_URL) {
+        try {
+          const baseUrl = (import.meta.env.VITE_APP_URL || window.location.href.split('#')[0]).replace(/\/$/, '');
+          await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              ...finalOrder, 
+              appUrl: baseUrl + '/',
+              adminUrl: baseUrl + '/#/admin'
+            })
+          });
+        } catch (err) {
+          console.error('Failed to send order to n8n:', err);
+        }
       }
-    }
 
-    setLoading(false);
-    setIsSuccess(true);
-    
-    // Simulate real notification sound or haptic feedback intent
-    if ('vibrate' in navigator) {
-      navigator.vibrate([100, 50, 100]);
+      setLoading(false);
+      setIsSuccess(true);
+      
+      // Simulate real notification sound or haptic feedback intent
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]);
+      }
+    } catch (err) {
+      console.error('Final save error:', err);
+      setError('Failed to save your order to the cloud. Please check your connection and try again.');
+      setLoading(false);
     }
   };
 
@@ -560,6 +595,12 @@ const OrderForm: React.FC = () => {
           >
             {loading ? 'Processing...' : 'Place Bespoke Order'}
           </button>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold text-center animate-shake">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>

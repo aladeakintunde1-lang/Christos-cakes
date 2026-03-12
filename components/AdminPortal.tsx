@@ -571,10 +571,10 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.estimatedMileage !== undefined && (
+                    {order.distance !== undefined && (
                       <div className="mt-4 pt-4 border-t border-slate-200/50">
                         <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
-                        <p className="text-lg font-black text-slate-900">{order.estimatedMileage.toFixed(1)} miles</p>
+                        <p className="text-lg font-black text-slate-900">{order.distance.toFixed(1)} miles</p>
                       </div>
                     )}
                   </div>
