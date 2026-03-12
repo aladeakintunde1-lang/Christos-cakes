@@ -104,10 +104,15 @@ const OrderForm: React.FC = () => {
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {
       try {
+        const baseUrl = (import.meta.env.VITE_APP_URL || window.location.origin + window.location.pathname).replace(/\/$/, '');
         await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...finalOrder, appUrl: window.location.origin })
+          body: JSON.stringify({ 
+            ...finalOrder, 
+            appUrl: baseUrl + '/',
+            adminUrl: baseUrl + '/#/admin'
+          })
         });
       } catch (err) {
         console.error('Failed to send order to n8n:', err);

@@ -571,10 +571,16 @@ const AdminPortal: React.FC = () => {
                         onClick={async () => {
                           if (N8N_WEBHOOK_URL) {
                             try {
+                              const baseUrl = (import.meta.env.VITE_APP_URL || window.location.origin + window.location.pathname).replace(/\/$/, '');
                               await fetch(N8N_WEBHOOK_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ...order, type: 'SEND_INVOICE', appUrl: window.location.origin })
+                                body: JSON.stringify({ 
+                                  ...order, 
+                                  type: 'SEND_INVOICE', 
+                                  appUrl: baseUrl + '/',
+                                  adminUrl: baseUrl + '/#/admin'
+                                })
                               });
                               setLastAction('Invoice email triggered');
                               setTimeout(() => setLastAction(null), 3000);
