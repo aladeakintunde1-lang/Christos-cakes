@@ -99,7 +99,7 @@ const OrderForm: React.FC = () => {
       deliveryFee: 0,
     } as Order;
     
-    saveOrder(finalOrder);
+    await saveOrder(finalOrder);
 
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {

@@ -11,7 +11,8 @@ import {
   deleteGalleryImage,
   getLogoUrl,
   saveLogoUrl,
-  syncWithSupabase
+  syncWithSupabase,
+  subscribeToOrders
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
@@ -38,6 +39,17 @@ const AdminPortal: React.FC = () => {
       refreshData();
       const savedLogo = getLogoUrl();
       if (savedLogo) setCustomLogoUrl(savedLogo);
+
+      // Subscribe to real-time updates
+      const subscription = subscribeToOrders(() => {
+        setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
+        setLastAction('🚨 NEW ORDER RECEIVED');
+        setTimeout(() => setLastAction(null), 5000);
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [isAuthenticated]);
 

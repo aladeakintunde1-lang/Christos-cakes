@@ -97,6 +97,15 @@ export const deleteOrder = async (orderId: string) => {
   }
 };
 
+export const subscribeToOrders = (callback: () => void) => {
+  return supabase
+    .channel('public:orders')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      syncWithSupabase().then(callback);
+    })
+    .subscribe();
+};
+
 // Gallery Methods
 export const getGalleryImages = (): GalleryImage[] => {
   const data = localStorage.getItem(GALLERY_KEY);
