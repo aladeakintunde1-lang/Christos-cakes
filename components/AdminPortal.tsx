@@ -571,7 +571,7 @@ const AdminPortal: React.FC = () => {
                         onClick={async () => {
                           if (N8N_WEBHOOK_URL) {
                             try {
-                              const baseUrl = (import.meta.env.VITE_APP_URL || window.location.origin + window.location.pathname).replace(/\/$/, '');
+                              const baseUrl = (import.meta.env.VITE_APP_URL || window.location.href.split('#')[0]).replace(/\/$/, '');
                               await fetch(N8N_WEBHOOK_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
