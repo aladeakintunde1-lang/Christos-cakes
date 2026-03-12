@@ -47,6 +47,7 @@ const OrderForm: React.FC = () => {
       try {
         const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
         setCalculatedDistance(miles);
+        setOrder(prev => ({ ...prev, estimatedMileage: miles }));
       } catch (error) {
         console.error(error);
       } finally {
@@ -54,12 +55,13 @@ const OrderForm: React.FC = () => {
       }
     } else {
       setCalculatedDistance(null);
+      setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
     }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
-      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '' }));
+      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', estimatedMileage: undefined }));
       setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
@@ -270,9 +272,7 @@ const OrderForm: React.FC = () => {
                   <div className="mt-3 flex items-center justify-between p-4 bg-pink-50 rounded-xl border border-pink-100">
                     <div>
                       <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
-                      <span className="text-sm font-black text-pink-900">
-                        {calculatedDistance > 0 ? `${calculatedDistance.toFixed(1)} miles` : 'Distance could not be calculated'}
-                      </span>
+                      <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
                     </div>
                   </div>
                 )}
