@@ -10,7 +10,8 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getLogoUrl,
-  saveLogoUrl
+  saveLogoUrl,
+  syncWithSupabase
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
@@ -54,7 +55,8 @@ const AdminPortal: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const refreshData = () => {
+  const refreshData = async () => {
+    await syncWithSupabase();
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
   };
@@ -204,7 +206,24 @@ const AdminPortal: React.FC = () => {
       <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-12 gap-8">
         <div>
           <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
-          <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
+            <button 
+              onClick={() => {
+                setLastAction('Syncing with cloud...');
+                refreshData().then(() => {
+                  setLastAction('Sync complete');
+                  setTimeout(() => setLastAction(null), 2000);
+                });
+              }}
+              className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all group"
+              title="Sync with Cloud"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400 group-hover:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
           <button 
@@ -461,7 +480,10 @@ const AdminPortal: React.FC = () => {
                     </div>
                     <h3 className="text-4xl font-bold text-slate-900 leading-tight mb-2 font-serif">{order.customerName}</h3>
                     <p className="text-lg text-slate-500 font-medium mb-1">{order.deliveryDate} @ {order.deliveryTimeSlot}</p>
-                    <p className="text-xs text-pink-600 font-black tracking-widest uppercase">{order.phone}</p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs text-pink-600 font-black tracking-widest uppercase">{order.phone}</p>
+                      <p className="text-xs text-slate-400 font-bold lowercase">{order.email}</p>
+                    </div>
                   </div>
                   
                   <div className="text-right flex flex-col items-end">
@@ -516,6 +538,20 @@ const AdminPortal: React.FC = () => {
                           </svg>
                           View Instagram Design
                         </a>
+                      </div>
+                    )}
+
+                    {order.inspirationImage && (
+                      <div className="mt-4 pt-4 border-t border-slate-200/50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-widest">Uploaded Inspiration</p>
+                        <div className="mt-2 rounded-xl overflow-hidden border border-slate-100 bg-white">
+                          <img 
+                            src={order.inspirationImage} 
+                            alt="Inspiration" 
+                            className="w-full h-auto max-h-[200px] object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
