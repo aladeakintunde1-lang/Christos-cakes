@@ -99,7 +99,13 @@ const OrderForm: React.FC = () => {
       deliveryFee: 0,
     } as Order;
     
-    await saveOrder(finalOrder);
+    const result = await saveOrder(finalOrder);
+
+    if (!result.success) {
+      alert('There was a technical issue saving your order to our cloud. Please try again or contact us if the problem persists.');
+      setLoading(false);
+      return;
+    }
 
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {

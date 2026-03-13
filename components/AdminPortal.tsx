@@ -36,11 +36,7 @@ const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const init = async () => {
-        await syncWithSupabase();
-        refreshData();
-      };
-      init();
+      refreshData();
       
       const savedLogo = getLogoUrl();
       if (savedLogo) setCustomLogoUrl(savedLogo);
@@ -51,8 +47,7 @@ const AdminPortal: React.FC = () => {
         .on(
           'postgres_changes', 
           { event: '*', schema: 'public', table: 'orders' }, 
-          async () => {
-            await syncWithSupabase();
+          () => {
             refreshData();
             setLastAction('🚨 ORDERS UPDATED');
             setTimeout(() => setLastAction(null), 5000);
@@ -80,8 +75,9 @@ const AdminPortal: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const refreshData = () => {
-    setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
+  const refreshData = async () => {
+    const syncedOrders = await syncWithSupabase();
+    setOrders(syncedOrders.sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
   };
 
@@ -233,6 +229,16 @@ const AdminPortal: React.FC = () => {
           <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
         </div>
         <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => refreshData()}
+            className="xl:flex-none px-4 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase text-slate-500 hover:text-pink-600 flex items-center gap-2"
+            title="Sync with Cloud"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sync
+          </button>
           <button 
             onClick={() => setViewMode('Orders')}
             className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}

@@ -12,7 +12,15 @@ export const syncWithSupabase = async () => {
   try {
     const { data: orders, error } = await supabase.from('orders').select('*');
     if (error) throw error;
-    if (orders) localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    if (orders) {
+      try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+      } catch (lsError) {
+        console.warn('LocalStorage full, orders synced in memory only', lsError);
+        // We still have the orders in the 'orders' variable, but we can't persist them all to LS
+      }
+      return orders;
+    }
   } catch (error) {
     console.error('Failed to sync orders:', error);
   }
@@ -21,7 +29,13 @@ export const syncWithSupabase = async () => {
   try {
     const { data: gallery, error } = await supabase.from('gallery').select('*');
     if (error) throw error;
-    if (gallery) localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+    if (gallery) {
+      try {
+        localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+      } catch (e) {
+        console.warn('Gallery LS full', e);
+      }
+    }
   } catch (error) {
     console.error('Failed to sync gallery:', error);
   }
@@ -34,50 +48,41 @@ export const syncWithSupabase = async () => {
   } catch (error) {
     console.error('Failed to sync settings:', error);
   }
+
+  return getOrders();
 };
 
 export const getOrders = (): Order[] => {
-  const data = localStorage.getItem(ORDERS_KEY);
-  return data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem(ORDERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Failed to read orders from localStorage:', error);
+    return [];
+  }
 };
 
 export const saveOrder = async (order: Order) => {
+  // Try to save locally first
   const orders = getOrders();
   orders.push(order);
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-  
-  // Explicitly map fields to match Supabase schema and ensure no undefined values for NOT NULL columns
-  const supabaseOrder = {
-    id: order.id,
-    customerName: order.customerName,
-    email: order.email,
-    phone: order.phone,
-    fulfillmentType: order.fulfillmentType,
-    postcode: order.postcode || null,
-    address: order.address || null,
-    deliveryFee: order.deliveryFee || 0,
-    deliveryDate: order.deliveryDate,
-    deliveryTimeSlot: order.deliveryTimeSlot,
-    flavor: order.flavor,
-    size: order.size,
-    messageOnCake: order.messageOnCake || null,
-    inspirationImage: order.inspirationImage || null,
-    inspirationLink: order.inspirationLink || null,
-    totalPrice: order.totalPrice || 0,
-    status: order.status,
-    distance: order.distance || null,
-    createdAt: order.createdAt
-  };
-
   try {
-    const { error } = await supabase.from('orders').insert([supabaseOrder]);
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  } catch (error) {
+    console.warn('Failed to save order to localStorage (likely full):', error);
+  }
+  
+  // Save to Supabase
+  try {
+    const { error } = await supabase.from('orders').insert([order]);
     if (error) {
-      console.error('Supabase insert error details:', error);
+      console.error('Supabase insert error:', error);
       throw error;
     }
+    return { success: true };
   } catch (error) {
     console.error('Supabase saveOrder error:', error);
-    throw error;
+    return { success: false, error };
   }
 };
 
@@ -122,15 +127,6 @@ export const deleteOrder = async (orderId: string) => {
   } catch (error) {
     console.error('Supabase deleteOrder error:', error);
   }
-};
-
-export const subscribeToOrders = (callback: () => void) => {
-  return supabase
-    .channel('public:orders')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-      syncWithSupabase().then(callback);
-    })
-    .subscribe();
 };
 
 // Gallery Methods
