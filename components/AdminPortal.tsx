@@ -10,8 +10,10 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getLogoUrl,
-  saveLogoUrl
+  saveLogoUrl,
+  syncWithSupabase
 } from '../utils/storage';
+import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
@@ -34,9 +36,33 @@ const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      refreshData();
+      const init = async () => {
+        await syncWithSupabase();
+        refreshData();
+      };
+      init();
+      
       const savedLogo = getLogoUrl();
       if (savedLogo) setCustomLogoUrl(savedLogo);
+
+      // Real-time subscription for orders
+      const orderChannel = supabase
+        .channel('admin_orders')
+        .on(
+          'postgres_changes', 
+          { event: '*', schema: 'public', table: 'orders' }, 
+          async () => {
+            await syncWithSupabase();
+            refreshData();
+            setLastAction('🚨 ORDERS UPDATED');
+            setTimeout(() => setLastAction(null), 5000);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(orderChannel);
+      };
     }
   }, [isAuthenticated]);
 
@@ -523,10 +549,10 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.estimatedMileage !== undefined && (
+                    {order.distance !== undefined && (
                       <div className="mt-4 pt-4 border-t border-slate-200/50">
                         <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
-                        <p className="text-lg font-black text-slate-900">{order.estimatedMileage.toFixed(1)} miles</p>
+                        <p className="text-lg font-black text-slate-900">{order.distance.toFixed(1)} miles</p>
                       </div>
                     )}
                   </div>

@@ -46,11 +46,38 @@ export const saveOrder = async (order: Order) => {
   orders.push(order);
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
   
+  // Explicitly map fields to match Supabase schema and ensure no undefined values for NOT NULL columns
+  const supabaseOrder = {
+    id: order.id,
+    customerName: order.customerName,
+    email: order.email,
+    phone: order.phone,
+    fulfillmentType: order.fulfillmentType,
+    postcode: order.postcode || null,
+    address: order.address || null,
+    deliveryFee: order.deliveryFee || 0,
+    deliveryDate: order.deliveryDate,
+    deliveryTimeSlot: order.deliveryTimeSlot,
+    flavor: order.flavor,
+    size: order.size,
+    messageOnCake: order.messageOnCake || null,
+    inspirationImage: order.inspirationImage || null,
+    inspirationLink: order.inspirationLink || null,
+    totalPrice: order.totalPrice || 0,
+    status: order.status,
+    distance: order.distance || null,
+    createdAt: order.createdAt
+  };
+
   try {
-    const { error } = await supabase.from('orders').insert([order]);
-    if (error) throw error;
+    const { error } = await supabase.from('orders').insert([supabaseOrder]);
+    if (error) {
+      console.error('Supabase insert error details:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Supabase saveOrder error:', error);
+    throw error;
   }
 };
 
@@ -95,6 +122,15 @@ export const deleteOrder = async (orderId: string) => {
   } catch (error) {
     console.error('Supabase deleteOrder error:', error);
   }
+};
+
+export const subscribeToOrders = (callback: () => void) => {
+  return supabase
+    .channel('public:orders')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      syncWithSupabase().then(callback);
+    })
+    .subscribe();
 };
 
 // Gallery Methods
