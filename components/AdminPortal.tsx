@@ -10,10 +10,8 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getLogoUrl,
-  saveLogoUrl,
-  syncWithSupabase
+  saveLogoUrl
 } from '../utils/storage';
-import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
@@ -37,27 +35,8 @@ const AdminPortal: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       refreshData();
-      
       const savedLogo = getLogoUrl();
       if (savedLogo) setCustomLogoUrl(savedLogo);
-
-      // Real-time subscription for orders
-      const orderChannel = supabase
-        .channel('admin_orders')
-        .on(
-          'postgres_changes', 
-          { event: '*', schema: 'public', table: 'orders' }, 
-          () => {
-            refreshData();
-            setLastAction('🚨 ORDERS UPDATED');
-            setTimeout(() => setLastAction(null), 5000);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(orderChannel);
-      };
     }
   }, [isAuthenticated]);
 
@@ -75,9 +54,8 @@ const AdminPortal: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const refreshData = async () => {
-    const syncedOrders = await syncWithSupabase();
-    setOrders(syncedOrders.sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
+  const refreshData = () => {
+    setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
   };
 
@@ -229,16 +207,6 @@ const AdminPortal: React.FC = () => {
           <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
         </div>
         <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
-          <button 
-            onClick={() => refreshData()}
-            className="xl:flex-none px-4 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase text-slate-500 hover:text-pink-600 flex items-center gap-2"
-            title="Sync with Cloud"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Sync
-          </button>
           <button 
             onClick={() => setViewMode('Orders')}
             className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
@@ -555,10 +523,10 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.distance !== undefined && (
+                    {order.estimatedMileage !== undefined && (
                       <div className="mt-4 pt-4 border-t border-slate-200/50">
                         <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
-                        <p className="text-lg font-black text-slate-900">{order.distance.toFixed(1)} miles</p>
+                        <p className="text-lg font-black text-slate-900">{order.estimatedMileage.toFixed(1)} miles</p>
                       </div>
                     )}
                   </div>

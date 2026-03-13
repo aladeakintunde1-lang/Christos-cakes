@@ -52,7 +52,7 @@ const OrderForm: React.FC = () => {
         try {
           const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
           setCalculatedDistance(miles);
-          setOrder(prev => ({ ...prev, distance: miles }));
+          setOrder(prev => ({ ...prev, estimatedMileage: miles }));
         } catch (error) {
           console.error(error);
         } finally {
@@ -61,14 +61,14 @@ const OrderForm: React.FC = () => {
       }, 800);
     } else {
       setCalculatedDistance(null);
-      setOrder(prev => ({ ...prev, distance: undefined }));
+      setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
       setDistanceLoading(false);
     }
   };
 
   useEffect(() => {
     if (order.fulfillmentType === 'Collection') {
-      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', distance: undefined }));
+      setOrder(prev => ({ ...prev, deliveryFee: 0, postcode: '', estimatedMileage: undefined }));
       setCalculatedDistance(null);
     }
   }, [order.fulfillmentType]);
@@ -99,13 +99,7 @@ const OrderForm: React.FC = () => {
       deliveryFee: 0,
     } as Order;
     
-    const result = await saveOrder(finalOrder);
-
-    if (!result.success) {
-      alert('There was a technical issue saving your order to our cloud. Please try again or contact us if the problem persists.');
-      setLoading(false);
-      return;
-    }
+    saveOrder(finalOrder);
 
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {

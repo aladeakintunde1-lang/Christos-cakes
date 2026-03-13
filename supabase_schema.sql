@@ -1,5 +1,4 @@
 -- SQL to create the necessary tables in Supabase
--- Run this in your Supabase SQL Editor (https://app.supabase.com/project/_/sql)
 
 -- Orders Table
 CREATE TABLE IF NOT EXISTS orders (
@@ -10,7 +9,7 @@ CREATE TABLE IF NOT EXISTS orders (
   fulfillmentType TEXT NOT NULL,
   postcode TEXT,
   address TEXT,
-  deliveryFee NUMERIC NOT NULL DEFAULT 0,
+  deliveryFee NUMERIC NOT NULL,
   deliveryDate TEXT NOT NULL,
   deliveryTimeSlot TEXT NOT NULL,
   flavor TEXT NOT NULL,
@@ -18,8 +17,8 @@ CREATE TABLE IF NOT EXISTS orders (
   messageOnCake TEXT,
   inspirationImage TEXT,
   inspirationLink TEXT,
-  totalPrice NUMERIC NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'Pending',
+  totalPrice NUMERIC NOT NULL,
+  status TEXT NOT NULL,
   distance NUMERIC,
   createdAt TEXT NOT NULL
 );
@@ -38,24 +37,3 @@ CREATE TABLE IF NOT EXISTS settings (
   logoUrl TEXT,
   CONSTRAINT single_row CHECK (id = 1)
 );
-
--- Enable Row Level Security (RLS)
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
-
--- Policies for 'orders'
-CREATE POLICY "Enable insert for everyone" ON orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable read for everyone" ON orders FOR SELECT USING (true);
-CREATE POLICY "Enable update for everyone" ON orders FOR UPDATE USING (true);
-CREATE POLICY "Enable delete for everyone" ON orders FOR DELETE USING (true);
-
--- Policies for 'gallery'
-CREATE POLICY "Enable read for everyone" ON gallery FOR SELECT USING (true);
-CREATE POLICY "Enable insert for everyone" ON gallery FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable delete for everyone" ON gallery FOR DELETE USING (true);
-
--- Policies for 'settings'
-CREATE POLICY "Enable read for everyone" ON settings FOR SELECT USING (true);
-CREATE POLICY "Enable update for everyone" ON settings FOR UPDATE USING (true);
-CREATE POLICY "Enable insert for everyone" ON settings FOR INSERT WITH CHECK (true);
