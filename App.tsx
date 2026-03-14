@@ -12,34 +12,20 @@ const Navigation = ({ role, setRole }: { role: UserRole, setRole: (r: UserRole) 
   const navigate = useNavigate();
   const location = useLocation();
   
-  const isAdminActive = location.pathname === '/admin';
   const isStoreActive = location.pathname === '/' || location.pathname === '/order';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200 px-6 pt-3 pb-safe flex justify-around items-center z-50 transition-all duration-300 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] md:top-0 md:bottom-auto md:border-t-0 md:border-b md:pb-3">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-xl border-t border-white/20 px-8 pt-4 pb-safe flex justify-around items-center z-50 transition-all duration-300 shadow-[0_-10px_40px_rgba(219,39,119,0.05)] md:top-0 md:bottom-auto md:border-t-0 md:border-b md:pb-4">
       <button 
         onClick={() => { setRole(UserRole.CUSTOMER); navigate('/'); }}
-        className={`flex flex-col items-center gap-1.5 transition-colors duration-200 ${isStoreActive ? 'text-pink-600' : 'text-slate-400 hover:text-slate-600'}`}
+        className={`flex flex-col items-center gap-1.5 transition-all duration-300 group ${isStoreActive ? 'text-pink-600 scale-110' : 'text-slate-400 hover:text-pink-400'}`}
       >
-        <div className={`p-1.5 rounded-xl transition-colors ${isStoreActive ? 'bg-pink-50' : 'bg-transparent'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        <div className={`p-2 rounded-2xl transition-all duration-500 ${isStoreActive ? 'bg-pink-100/50 shadow-inner' : 'bg-transparent group-hover:bg-pink-50/30'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-widest">Store</span>
-      </button>
-
-      <button 
-        onClick={() => { setRole(UserRole.ADMIN); navigate('/admin'); }}
-        className={`flex flex-col items-center gap-1.5 transition-colors duration-200 ${isAdminActive ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-      >
-        <div className={`p-1.5 rounded-xl transition-colors ${isAdminActive ? 'bg-slate-100' : 'bg-transparent'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
-        <span className="text-[10px] uppercase font-bold tracking-widest">Admin</span>
+        <span className="text-[9px] uppercase font-bold tracking-[0.2em]">Boutique</span>
       </button>
     </nav>
   );
@@ -54,9 +40,9 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col soft-pink-bg">
         <Navigation role={role} setRole={setRole} />
-        <main className="flex-grow max-w-4xl mx-auto w-full px-4 pt-6 pb-24 md:pb-12 md:pt-28">
+        <main className="flex-grow max-w-5xl mx-auto w-full px-4 pt-8 pb-24 md:pb-16 md:pt-32">
           <Routes>
             <Route path="/" element={<CustomerPortal />} />
             <Route path="/order" element={<OrderForm />} />

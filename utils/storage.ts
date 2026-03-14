@@ -12,7 +12,15 @@ export const syncWithSupabase = async () => {
   try {
     const { data: orders, error } = await supabase.from('orders').select('*');
     if (error) throw error;
-    if (orders) localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    if (orders) {
+      try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+      } catch (lsError) {
+        console.warn('LocalStorage full, orders synced in memory only', lsError);
+        // We still have the orders in the 'orders' variable, but we can't persist them all to LS
+      }
+      return orders;
+    }
   } catch (error) {
     console.error('Failed to sync orders:', error);
   }
@@ -21,7 +29,13 @@ export const syncWithSupabase = async () => {
   try {
     const { data: gallery, error } = await supabase.from('gallery').select('*');
     if (error) throw error;
-    if (gallery) localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+    if (gallery) {
+      try {
+        localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+      } catch (e) {
+        console.warn('Gallery LS full', e);
+      }
+    }
   } catch (error) {
     console.error('Failed to sync gallery:', error);
   }
@@ -34,23 +48,41 @@ export const syncWithSupabase = async () => {
   } catch (error) {
     console.error('Failed to sync settings:', error);
   }
+
+  return getOrders();
 };
 
 export const getOrders = (): Order[] => {
-  const data = localStorage.getItem(ORDERS_KEY);
-  return data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem(ORDERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Failed to read orders from localStorage:', error);
+    return [];
+  }
 };
 
 export const saveOrder = async (order: Order) => {
+  // Try to save locally first
   const orders = getOrders();
   orders.push(order);
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  try {
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  } catch (error) {
+    console.warn('Failed to save order to localStorage (likely full):', error);
+  }
   
+  // Save to Supabase
   try {
     const { error } = await supabase.from('orders').insert([order]);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
+    return { success: true };
   } catch (error) {
     console.error('Supabase saveOrder error:', error);
+    return { success: false, error };
   }
 };
 

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
@@ -38,31 +39,24 @@ const OrderForm: React.FC = () => {
     inspirationLink: '',
   });
 
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
-  const handlePostcodeChange = (postcode: string) => {
+  const handlePostcodeChange = async (postcode: string) => {
     const pc = postcode.toUpperCase().trim();
     setOrder(prev => ({ ...prev, postcode: pc }));
     
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
-      debounceTimer.current = setTimeout(async () => {
-        try {
-          const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
-          setCalculatedDistance(miles);
-          setOrder(prev => ({ ...prev, estimatedMileage: miles }));
-        } catch (error) {
-          console.error(error);
-        } finally {
-          setDistanceLoading(false);
-        }
-      }, 800);
+      try {
+        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
+        setCalculatedDistance(miles);
+        setOrder(prev => ({ ...prev, estimatedMileage: miles }));
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setDistanceLoading(false);
+      }
     } else {
       setCalculatedDistance(null);
       setOrder(prev => ({ ...prev, estimatedMileage: undefined }));
-      setDistanceLoading(false);
     }
   };
 
@@ -104,15 +98,10 @@ const OrderForm: React.FC = () => {
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {
       try {
-        const baseUrl = (import.meta.env.VITE_APP_URL || window.location.href.split('#')[0]).replace(/\/$/, '');
         await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            ...finalOrder, 
-            appUrl: baseUrl + '/',
-            adminUrl: baseUrl + '/#/admin'
-          })
+          body: JSON.stringify({ ...finalOrder, appUrl: window.location.origin })
         });
       } catch (err) {
         console.error('Failed to send order to n8n:', err);
@@ -136,66 +125,70 @@ const OrderForm: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <div className="animate-fadeIn min-h-[60vh] flex items-center justify-center py-12 px-4">
-        <div className="bg-white rounded-[3.5rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100 relative overflow-hidden">
+      <div className="animate-fadeIn min-h-[70vh] flex items-center justify-center py-12 px-4">
+        <div className="glass-card rounded-[3.5rem] p-12 md:p-24 max-w-3xl w-full text-center relative overflow-hidden shadow-[0_40px_100px_rgba(219,39,119,0.1)] border-white/80">
           {/* Confetti-like decor */}
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-500 via-green-400 to-blue-500" />
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-pink-500 via-rose-300 to-pink-600" />
           
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-[bounce_2s_infinite]">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          <motion.div 
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", damping: 15, stiffness: 200 }}
+            className="w-28 h-28 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-12 border border-pink-100 shadow-inner"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
-          </div>
+          </motion.div>
           
-          <h2 className="text-4xl font-bold text-slate-900 mb-4 font-serif">Order Received!</h2>
-          <p className="text-slate-500 mb-10 leading-relaxed font-medium">
-            Thank you, <span className="font-bold text-slate-900">{order.customerName}</span>. Your bespoke luxury cake journey has officially begun.
+          <h2 className="text-6xl font-serif text-pink-950 mb-8 leading-[0.9] tracking-tighter">Your Journey <br/><span className="italic text-pink-600">Begins</span></h2>
+          <p className="text-slate-500 mb-16 leading-relaxed font-medium text-lg max-w-lg mx-auto">
+            Thank you, <span className="font-bold text-pink-800">{order.customerName}</span>. Your bespoke luxury cake request has been received. We are preparing to bring your vision to life.
           </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 text-left animate-slideIn" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-pink-100 rounded-xl">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+            <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 text-left animate-slideIn shadow-sm" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-4 mb-5">
+                <div className="p-3 bg-pink-50 rounded-2xl border border-pink-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Client Alert</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Client Alert</span>
               </div>
-              <p className="text-xs font-bold text-slate-700">SMS Confirmation has been dispatched to {order.phone}</p>
+              <p className="text-sm font-bold text-slate-800">Confirmation dispatched to {order.phone}</p>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 text-left animate-slideIn" style={{ animationDelay: '0.4s' }}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-blue-100 rounded-xl">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 text-left animate-slideIn shadow-sm" style={{ animationDelay: '0.4s' }}>
+              <div className="flex items-center gap-4 mb-5">
+                <div className="p-3 bg-pink-50 rounded-2xl border border-pink-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admin Ping</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Atelier Ping</span>
               </div>
-              <p className="text-xs font-bold text-slate-700">The baker has been notified and is reviewing your design.</p>
+              <p className="text-sm font-bold text-slate-800">The baker is reviewing your bespoke design.</p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <button 
+          <div className="flex flex-col gap-6">
+            <motion.button 
+              whileHover={{ scale: 1.02, y: -4 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => navigate(`/invoice/${order.id}`)}
-              className="w-full bg-pink-600 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-pink-700 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
+              className="w-full bg-pink-700 text-white py-7 rounded-full font-bold text-sm tracking-[0.3em] hover:bg-pink-800 transition-all shadow-2xl shadow-pink-200/40 uppercase flex items-center justify-center gap-4 border border-white/20"
             >
               VIEW INVOICE
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-            </button>
+            </motion.button>
             <button 
               onClick={() => navigate('/')}
-              className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase flex items-center justify-center gap-3"
+              className="w-full text-slate-400 py-4 rounded-full font-bold text-[10px] tracking-[0.5em] hover:text-pink-600 transition-all uppercase"
             >
-              RETURN TO GALLERY
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              Return to Boutique
             </button>
           </div>
         </div>
@@ -204,22 +197,22 @@ const OrderForm: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 mb-12 border border-slate-100">
-      <div className="flex justify-between items-center mb-8">
-        <button onClick={() => setStep(prev => Math.max(1, prev - 1))} className={`text-slate-400 p-2 hover:bg-slate-50 rounded-full transition-colors ${step === 1 ? 'invisible' : ''}`}>
+    <div className="glass-card rounded-[3rem] p-10 md:p-16 mb-20 shadow-[0_30px_100px_rgba(0,0,0,0.04)] animate-slideIn border-white/80">
+      <div className="flex justify-between items-center mb-16">
+        <button onClick={() => setStep(prev => Math.max(1, prev - 1))} className={`text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all ${step === 1 ? 'invisible' : ''}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Step {step} of 3</span>
-          <div className="flex gap-1">
-            <div className={`h-1 w-6 rounded-full ${step >= 1 ? 'bg-pink-500' : 'bg-slate-100'}`} />
-            <div className={`h-1 w-6 rounded-full ${step >= 2 ? 'bg-pink-500' : 'bg-slate-100'}`} />
-            <div className={`h-1 w-6 rounded-full ${step >= 3 ? 'bg-pink-500' : 'bg-slate-100'}`} />
+          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 3</span>
+          <div className="flex gap-3">
+            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 1 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 2 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 3 ? 'bg-pink-600' : 'bg-pink-100'}`} />
           </div>
         </div>
-        <button onClick={() => navigate('/')} className="text-slate-400 p-2 hover:bg-slate-50 rounded-full transition-colors">
+        <button onClick={() => navigate('/')} className="text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -227,74 +220,78 @@ const OrderForm: React.FC = () => {
       </div>
 
       {step === 1 && (
-        <div className="animate-slideIn">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2 font-serif">Delivery Logistics</h2>
-          <p className="text-sm text-slate-400 mb-8 font-medium">Choose how you'd like to receive your cake.</p>
+        <div className="animate-fadeIn">
+          <h2 className="text-5xl font-serif text-pink-950 mb-3">Logistics</h2>
+          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Select your preferred fulfillment method.</p>
           
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-8 mb-12">
             <button 
               onClick={() => setOrder(prev => ({ ...prev, fulfillmentType: 'Collection' }))}
-              className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${order.fulfillmentType === 'Collection' ? 'border-pink-500 bg-pink-50/50 shadow-lg shadow-pink-100' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Collection' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${order.fulfillmentType === 'Collection' ? 'text-pink-600' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <div className="text-xs font-black uppercase tracking-widest">Collection</div>
-              <div className="text-[10px] text-slate-400 font-bold">FREE</div>
+              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Collection' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Collection</div>
+              <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Complimentary</div>
             </button>
             <button 
               onClick={() => setOrder(prev => ({ ...prev, fulfillmentType: 'Delivery' }))}
-              className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${order.fulfillmentType === 'Delivery' ? 'border-pink-500 bg-pink-50/50 shadow-lg shadow-pink-100' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Delivery' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${order.fulfillmentType === 'Delivery' ? 'text-pink-600' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-              <div className="text-xs font-black uppercase tracking-widest">Delivery</div>
-              <div className="text-[10px] text-slate-400 font-bold">Calculated by Mile</div>
+              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Delivery</div>
+              <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Bespoke Quote</div>
             </button>
           </div>
 
           {order.fulfillmentType === 'Collection' ? (
-            <div className="bg-slate-50 p-6 rounded-2xl mb-6 border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Studio Address</p>
-              <p className="text-sm text-slate-700 font-bold">{PICKUP_ADDRESS}</p>
+            <div className="bg-pink-50/20 p-10 rounded-[2.5rem] mb-12 border border-pink-100/50 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-pink-400 mb-4 uppercase tracking-[0.4em]">Atelier Address</p>
+              <p className="text-base text-pink-950 font-serif leading-relaxed italic">{PICKUP_ADDRESS}</p>
             </div>
           ) : (
-            <div className="space-y-6 mb-6">
+            <div className="space-y-10 mb-12">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Delivery Postcode</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Delivery Postcode</label>
                 <div className="relative">
                   <input 
                     type="text" 
                     placeholder="e.g. TA21 9RH"
-                    className={`w-full p-4 bg-slate-50 rounded-2xl border-2 transition-all focus:bg-white outline-none uppercase font-bold text-slate-800 ${distanceLoading ? 'animate-pulse border-pink-100' : 'border-transparent focus:border-pink-200'}`}
+                    className={`w-full p-6 bg-white/40 rounded-2xl border-2 transition-all focus:bg-white outline-none uppercase font-bold text-slate-800 tracking-[0.2em] text-lg ${distanceLoading ? 'animate-pulse border-pink-100' : 'border-slate-100 focus:border-pink-300'}`}
                     value={order.postcode}
                     onChange={e => handlePostcodeChange(e.target.value)}
                   />
                   {distanceLoading && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-pink-500 animate-pulse">
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-pink-500 animate-pulse tracking-[0.3em]">
                       CALCULATING...
                     </div>
                   )}
                 </div>
                 {!isPostcodeValid() && order.postcode && !distanceLoading && (
-                  <p className="text-red-500 text-[10px] font-bold mt-2 uppercase tracking-widest">Invalid UK postcode.</p>
+                  <p className="text-rose-400 text-[10px] font-bold mt-4 uppercase tracking-[0.2em]">Invalid UK postcode.</p>
                 )}
                 {calculatedDistance !== null && !distanceLoading && (
-                  <div className="mt-3 flex items-center justify-between p-4 bg-pink-50 rounded-xl border border-pink-100">
+                  <div className="mt-6 flex items-center justify-between p-6 bg-pink-50/30 rounded-2xl border border-pink-100/50">
                     <div>
-                      <span className="text-[10px] font-black text-pink-700 uppercase tracking-widest block">Mileage</span>
-                      <span className="text-sm font-black text-pink-900">{calculatedDistance.toFixed(1)} miles</span>
+                      <span className="text-[10px] font-bold text-pink-400 uppercase tracking-[0.3em] block mb-2">Estimated Distance</span>
+                      <span className="text-base font-bold text-pink-950">{calculatedDistance.toFixed(1)} miles from studio</span>
                     </div>
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Street Address</label>
+                <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Street Address</label>
                 <input 
                   type="text" 
-                  placeholder="Address Line 1"
-                  className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all"
+                  placeholder="Full delivery address..."
+                  className="w-full p-6 bg-white/40 rounded-2xl border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all font-medium text-lg"
                   value={order.address}
                   onChange={e => setOrder(prev => ({ ...prev, address: e.target.value }))}
                 />
@@ -302,99 +299,108 @@ const OrderForm: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Preferred Date</label>
+              <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Event Date</label>
               <input 
                 type="date" 
-                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all font-bold text-slate-800"
+                className="w-full p-6 bg-white/40 rounded-2xl border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all font-bold text-slate-800 text-lg"
                 value={order.deliveryDate}
                 onChange={e => setOrder(prev => ({ ...prev, deliveryDate: e.target.value }))}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Time Slot</label>
-              <select 
-                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all font-bold text-slate-800"
-                value={order.deliveryTimeSlot}
-                onChange={e => setOrder(prev => ({ ...prev, deliveryTimeSlot: e.target.value }))}
-              >
-                <option value="">Select Time</option>
-                <option value="Morning">Morning (9am - 12pm)</option>
-                <option value="Afternoon">Afternoon (1pm - 5pm)</option>
-                <option value="Night">Evening (6pm - 8pm)</option>
-              </select>
+              <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Arrival Window</label>
+              <div className="relative">
+                <select 
+                  className="w-full p-6 bg-white/40 rounded-2xl border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all font-bold text-slate-800 appearance-none text-lg"
+                  value={order.deliveryTimeSlot}
+                  onChange={e => setOrder(prev => ({ ...prev, deliveryTimeSlot: e.target.value }))}
+                >
+                  <option value="">Select Window</option>
+                  <option value="Morning">Morning (9am - 12pm)</option>
+                  <option value="Afternoon">Afternoon (1pm - 5pm)</option>
+                  <option value="Night">Evening (6pm - 8pm)</option>
+                </select>
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.01, y: -2 }}
+            whileTap={{ scale: 0.99 }}
             disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid() || distanceLoading}
             onClick={() => setStep(2)}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl mt-10 font-black text-sm tracking-widest disabled:opacity-50 transition-all shadow-xl active:scale-[0.98] uppercase"
+            className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] disabled:opacity-30 transition-all shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
           >
-            Continue to Customization
-          </button>
+            Continue to Design
+          </motion.button>
         </div>
       )}
 
       {step === 2 && (
-        <div className="animate-slideIn">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2 font-serif">Cake Design</h2>
-          <p className="text-sm text-slate-400 mb-8 font-medium">Customize your bespoke masterpiece.</p>
+        <div className="animate-fadeIn">
+          <h2 className="text-5xl font-serif text-pink-950 mb-3">Artistry</h2>
+          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Define the aesthetic of your masterpiece.</p>
           
-          <div className="space-y-6">
-            <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
-              <h3 className="text-xs font-black text-slate-800 mb-2 uppercase tracking-widest flex items-center gap-2">
-                Design Inspiration
+          <div className="space-y-12">
+            <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
+              <h3 className="text-[11px] font-bold text-pink-950 mb-3 uppercase tracking-[0.4em] flex items-center gap-3">
+                Visual Inspiration
               </h3>
-              <p className="text-xs text-slate-400 mb-6 font-medium">Upload a screenshot or link from our Instagram gallery.</p>
+              <p className="text-[11px] text-slate-400 mb-10 font-medium">Reference our curated gallery or upload your own vision.</p>
               
               <a 
                 href={INSTAGRAM_URL} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-full py-4 px-6 rounded-2xl bg-slate-900 text-white font-black text-[10px] tracking-widest mb-6 shadow-lg hover:bg-slate-800 transition-all uppercase"
+                className="inline-flex items-center justify-center w-full py-6 px-10 rounded-2xl bg-slate-900 text-white font-bold text-[11px] tracking-[0.4em] mb-10 shadow-2xl hover:bg-slate-800 transition-all uppercase"
               >
                 Browse @Christoscakes_events
               </a>
 
-              <div className="space-y-4">
+              <div className="space-y-8">
                 <div>
-                  <label className="block text-[9px] font-black text-slate-300 mb-2 uppercase tracking-[0.2em]">Instagram Post Link</label>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Instagram Reference Link</label>
                   <input 
                     type="url" 
-                    placeholder="Paste URL..."
-                    className="w-full p-4 bg-white rounded-xl border border-slate-100 text-xs focus:ring-4 focus:ring-pink-50 outline-none transition-all"
+                    placeholder="Paste URL here..."
+                    className="w-full p-6 bg-white rounded-2xl border border-slate-100 text-sm focus:ring-8 focus:ring-pink-50 outline-none transition-all font-medium"
                     value={order.inspirationLink || ''}
                     onChange={e => setOrder(prev => ({ ...prev, inspirationLink: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-slate-300 mb-2 uppercase tracking-[0.2em]">Visual Reference</label>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Upload Reference Image</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full min-h-[120px] p-6 bg-white border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-pink-300 hover:bg-pink-50/30 transition-all group"
+                    className="w-full min-h-[200px] p-10 bg-white/60 border-2 border-dashed border-pink-100 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-pink-300 hover:bg-white transition-all group shadow-inner"
                   >
                     {order.inspirationImage ? (
-                      <div className="relative w-full rounded-xl overflow-hidden bg-white shadow-inner">
-                        <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain max-h-[200px]" />
+                      <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl">
+                        <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain max-h-[400px]" />
                         <button 
                           onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, inspirationImage: undefined })) }}
-                          className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md text-white p-2 rounded-full shadow-lg"
+                          className="absolute top-6 right-6 bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-full shadow-2xl hover:bg-rose-600 transition-colors"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                           </svg>
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-300 group-hover:text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-700 border border-pink-100">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-300 group-hover:text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Click to upload screenshot</span>
+                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.3em]">Select from your device</span>
                       </>
                     )}
                   </div>
@@ -410,58 +416,57 @@ const OrderForm: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Flavor & Filling Preferences</label>
+              <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Flavor Palette & Dietary</label>
               <textarea 
-                placeholder="Describe your desired flavors, fillings, and any dietary requirements (e.g. Vanilla with strawberry jam, Gluten Free...)"
-                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all h-32 text-sm font-medium leading-relaxed"
+                placeholder="Describe your desired flavors, fillings, and any dietary requirements..."
+                className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-48 text-base font-medium leading-relaxed shadow-inner"
                 value={order.flavor}
                 onChange={e => setOrder(prev => ({ ...prev, flavor: e.target.value }))}
               />
-              <p className="text-[10px] text-slate-400 mt-2 font-medium italic">Feel free to list multiple flavors or specific combinations.</p>
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select Size</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-[10px] font-bold text-slate-400 mb-5 uppercase tracking-[0.4em]">Select Tier / Size</label>
+              <div className="grid grid-cols-2 gap-6">
                 {SIZES.map(s => (
                   <button 
                     key={s.label}
                     onClick={() => setOrder(prev => ({ ...prev, size: s.label }))}
-                    className={`p-5 rounded-2xl border-2 text-left transition-all ${order.size === s.label ? 'border-pink-500 bg-pink-50/50 shadow-lg shadow-pink-100' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                    className={`p-8 rounded-3xl border-2 text-left transition-all ${order.size === s.label ? 'border-pink-500 bg-pink-50/40 shadow-2xl shadow-pink-200/10' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
                   >
-                    <div className="text-xs font-black uppercase tracking-widest mb-1">{s.label}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">{s.label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Message on Cake</label>
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Calligraphy / Message</label>
                 <button 
                   onClick={handleAiHelp}
                   disabled={loading}
-                  className="text-[10px] font-black text-pink-600 flex items-center gap-1.5 hover:text-pink-700 transition-colors uppercase tracking-widest"
+                  className="text-[10px] font-bold text-pink-600 flex items-center gap-3 hover:text-pink-800 transition-colors uppercase tracking-[0.3em]"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  {loading ? 'Thinking...' : 'AI Assistance'}
+                  {loading ? 'Consulting AI...' : 'AI Suggestions'}
                 </button>
               </div>
               <textarea 
-                placeholder="Write your special message here..."
-                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-pink-200 focus:bg-white outline-none transition-all h-32 text-sm font-medium leading-relaxed"
+                placeholder="Message to be written on the cake..."
+                className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-40 text-base font-medium leading-relaxed shadow-inner"
                 value={order.messageOnCake}
                 onChange={e => setOrder(prev => ({ ...prev, messageOnCake: e.target.value }))}
               />
               {aiSuggestions.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-8 flex flex-wrap gap-4">
                   {aiSuggestions.map((s, i) => (
                     <button 
                       key={i} 
                       onClick={() => setOrder(prev => ({ ...prev, messageOnCake: s }))}
-                      className="text-[10px] font-black uppercase tracking-widest bg-pink-100 text-pink-700 px-3 py-2 rounded-full border border-pink-200 hover:bg-pink-200 transition-colors"
+                      className="text-[10px] font-bold uppercase tracking-[0.3em] bg-pink-50 text-pink-700 px-6 py-3 rounded-full border border-pink-100 hover:bg-pink-100 transition-all shadow-sm"
                     >
                       {s}
                     </button>
@@ -471,95 +476,113 @@ const OrderForm: React.FC = () => {
             </div>
           </div>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.01, y: -2 }}
+            whileTap={{ scale: 0.99 }}
             onClick={() => setStep(3)}
-            className="w-full bg-slate-900 text-white py-5 rounded-2xl mt-10 font-black text-sm tracking-widest shadow-xl active:scale-[0.98] uppercase"
+            className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
           >
             Review Summary
-          </button>
+          </motion.button>
         </div>
       )}
 
       {step === 3 && (
-        <div className="animate-slideIn">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2 font-serif">Order Review</h2>
-          <p className="text-sm text-slate-400 mb-8 font-medium">Verify your details before placing the order.</p>
+        <div className="animate-fadeIn">
+          <h2 className="text-5xl font-serif text-pink-950 mb-3">Review</h2>
+          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Confirm your bespoke specifications.</p>
           
-          <div className="space-y-6 mb-10">
-            <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Details</span>
-              <div className="text-right flex flex-col items-end gap-2">
-                <input 
-                  type="text" placeholder="Your Full Name" 
-                  className="block w-full text-right bg-transparent text-sm font-bold outline-none text-slate-800"
-                  value={order.customerName || ''}
-                  onChange={e => setOrder(prev => ({ ...prev, customerName: e.target.value }))}
-                />
-                <input 
-                  type="tel" placeholder="Mobile Number" 
-                  className="block w-full text-right bg-transparent text-xs text-slate-400 font-bold outline-none"
-                  value={order.phone || ''}
-                  onChange={e => setOrder(prev => ({ ...prev, phone: e.target.value }))}
-                />
-                <input 
-                  type="email" placeholder="Email Address" 
-                  className="block w-full text-right bg-transparent text-[10px] text-slate-400 font-bold outline-none"
-                  value={order.email || ''}
-                  onChange={e => setOrder(prev => ({ ...prev, email: e.target.value }))}
-                />
+          <div className="space-y-12">
+            <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
+              <h3 className="text-[11px] font-bold text-pink-950 mb-8 uppercase tracking-[0.4em]">Client Profile</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Full Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Your Name"
+                    className="w-full bg-transparent border-b-2 border-pink-100 p-4 text-lg font-serif italic outline-none focus:border-pink-500 transition-all text-pink-950 placeholder:text-slate-300"
+                    value={order.customerName || ''}
+                    onChange={e => setOrder(prev => ({ ...prev, customerName: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Contact Email</label>
+                  <input 
+                    type="email" 
+                    placeholder="Email Address"
+                    className="w-full bg-transparent border-b-2 border-pink-100 p-4 text-lg font-serif italic outline-none focus:border-pink-500 transition-all text-pink-950 placeholder:text-slate-300"
+                    value={order.email || ''}
+                    onChange={e => setOrder(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Mobile Number</label>
+                  <input 
+                    type="tel" 
+                    placeholder="Phone Number"
+                    className="w-full bg-transparent border-b-2 border-pink-100 p-4 text-lg font-serif italic outline-none focus:border-pink-500 transition-all text-pink-950 placeholder:text-slate-300"
+                    value={order.phone || ''}
+                    onChange={e => setOrder(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col border-b border-slate-100 pb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Specifications</span>
-              <div className="flex justify-between items-start">
-                <span className="font-bold text-sm text-slate-800">Size: {order.size}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                <h3 className="text-[11px] font-bold text-pink-950 uppercase tracking-[0.4em] mb-6">Specifications</h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Flavor</span>
+                    <span className="text-sm font-bold text-pink-900 text-right max-w-[200px] truncate">{order.flavor || 'Not specified'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Size</span>
+                    <span className="text-sm font-bold text-pink-900">{order.size}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</span>
+                    <span className="text-sm font-bold text-pink-900 italic">"{order.messageOnCake || 'None'}"</span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Custom Flavor</span>
-                <p className="text-xs font-medium text-slate-700 leading-relaxed">{order.flavor || 'Not specified'}</p>
+
+              <div className="space-y-8">
+                <h3 className="text-[11px] font-bold text-pink-950 uppercase tracking-[0.4em] mb-6">Logistics</h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Method</span>
+                    <span className="text-sm font-bold text-pink-900">{order.fulfillmentType}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Date</span>
+                    <span className="text-sm font-bold text-pink-900">{order.deliveryDate}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Window</span>
+                    <span className="text-sm font-bold text-pink-900">{order.deliveryTimeSlot}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fulfillment</span>
-              <div className="text-right">
-                <span className="font-bold text-sm text-slate-800 block">{order.fulfillmentType}</span>
-                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{order.deliveryDate} @ {order.deliveryTimeSlot}</span>
-              </div>
-            </div>
-
-            {order.inspirationLink && (
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Design Reference</span>
-                <a 
-                  href={order.inspirationLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-pink-600 truncate max-w-[200px] hover:underline flex items-center gap-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Instagram Link
-                </a>
-              </div>
-            )}
-
-            <div className="bg-slate-50/80 backdrop-blur-md p-8 rounded-[2rem] space-y-4 border border-slate-100 shadow-inner">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">
-                Price will be calculated by the baker after review.
-              </p>
+            <div className="bg-pink-50/30 p-12 rounded-[3rem] text-center border border-pink-100/50">
+              <p className="text-[11px] font-bold text-pink-400 mb-4 uppercase tracking-[0.5em]">Final Quote</p>
+              <p className="text-4xl font-serif text-pink-950 italic">Awaiting Atelier Review</p>
+              <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you within 24 hours</p>
             </div>
           </div>
 
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.01, y: -2 }}
+            whileTap={{ scale: 0.99 }}
             disabled={!order.customerName || !order.phone || !order.email || loading}
             onClick={handleFinish}
-            className="w-full bg-pink-600 text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-pink-100 hover:bg-pink-700 active:scale-[0.98] transition-all flex items-center justify-center gap-4 uppercase tracking-widest disabled:opacity-50"
+            className="w-full bg-pink-950 text-white py-8 rounded-full mt-16 font-bold text-sm tracking-[0.4em] shadow-[0_20px_60px_rgba(0,0,0,0.2)] disabled:opacity-30 transition-all uppercase border border-white/10"
           >
-            {loading ? 'Processing...' : 'Place Bespoke Order'}
-          </button>
+            {loading ? 'Processing Order...' : 'Place Bespoke Order'}
+          </motion.button>
         </div>
       )}
     </div>
