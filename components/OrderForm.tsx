@@ -197,8 +197,13 @@ const OrderForm: React.FC = () => {
   }
 
   return (
-    <div className="glass-card rounded-[3rem] p-10 md:p-16 mb-20 shadow-[0_30px_100px_rgba(0,0,0,0.04)] animate-slideIn border-white/80">
-      <div className="flex justify-between items-center mb-16">
+    <div className="relative max-w-4xl mx-auto">
+      {/* Visual "Stack" Layers */}
+      <div className="absolute -inset-4 bg-white/20 rounded-[4rem] -z-10 blur-xl" />
+      <div className="absolute inset-2 bg-pink-100/10 rounded-[3.5rem] -z-10 translate-y-4" />
+      
+      <div className="glass-card rounded-[3.5rem] p-10 md:p-16 mb-20 shadow-[0_40px_100px_rgba(219,39,119,0.08)] animate-slideIn border-white/80">
+        <div className="flex justify-between items-center mb-16">
         <button onClick={() => setStep(prev => Math.max(1, prev - 1))} className={`text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all ${step === 1 ? 'invisible' : ''}`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -586,6 +591,7 @@ const OrderForm: React.FC = () => {
         </div>
       )}
     </div>
+  </div>
   );
 };
 
