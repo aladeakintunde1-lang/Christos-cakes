@@ -76,23 +76,9 @@ const CustomerPortal: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="inline-flex flex-col items-center mb-8">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-pink-400 block mb-4">Established 2024</span>
-                  <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-pink-200 to-transparent" />
-                </div>
-                
                 <h1 className="text-6xl md:text-[8rem] text-pink-950 font-serif font-light mb-8 tracking-tighter leading-[0.85] relative inline-block">
                   Christos <br className="md:hidden" />
                   <span className="text-pink-600 italic font-light">Cakes</span>
-                  <motion.div
-                    animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.9, 1.2, 0.9], rotate: [0, 90, 180, 270, 360] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                    className="absolute -top-10 -right-12 text-pink-200 pointer-events-none hidden md:block"
-                  >
-                    <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 0l3.09 8.91L24 12l-8.91 3.09L12 24l-3.09-8.91L0 12l8.91-3.09L12 0z" />
-                    </svg>
-                  </motion.div>
                 </h1>
 
                 <div className="flex items-center justify-center gap-6 mt-4">
