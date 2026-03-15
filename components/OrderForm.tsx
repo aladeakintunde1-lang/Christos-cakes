@@ -98,10 +98,17 @@ const OrderForm: React.FC = () => {
     // Send to n8n if configured
     if (N8N_WEBHOOK_URL) {
       try {
+        // Remove large image data before sending to webhook to prevent payload size issues
+        const { inspirationImage, ...orderData } = finalOrder;
+        
         await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...finalOrder, appUrl: window.location.origin })
+          body: JSON.stringify({ 
+            ...orderData, 
+            type: 'NEW_ORDER',
+            appUrl: window.location.origin 
+          })
         });
       } catch (err) {
         console.error('Failed to send order to n8n:', err);

@@ -584,10 +584,17 @@ const AdminPortal: React.FC = () => {
                         onClick={async () => {
                           if (N8N_WEBHOOK_URL) {
                             try {
+                              // Remove large image data before sending to webhook
+                              const { inspirationImage, ...orderData } = order;
+                              
                               await fetch(N8N_WEBHOOK_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ...order, type: 'SEND_INVOICE', appUrl: window.location.origin })
+                                body: JSON.stringify({ 
+                                  ...orderData, 
+                                  type: 'SEND_INVOICE', 
+                                  appUrl: window.location.origin 
+                                })
                               });
                               setLastAction('Invoice email triggered');
                               setTimeout(() => setLastAction(null), 3000);
