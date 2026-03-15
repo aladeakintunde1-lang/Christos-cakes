@@ -77,6 +77,19 @@ export const saveOrder = async (order: Order) => {
     const { error } = await supabase.from('orders').insert([order]);
     if (error) {
       console.error('Supabase insert error:', error);
+      
+      // If it's a size issue or similar, try saving without the large image
+      if (order.inspirationImage) {
+        console.warn('Retrying save without inspiration image...');
+        const { inspirationImage, ...orderWithoutImage } = order;
+        const { error: retryError } = await supabase.from('orders').insert([orderWithoutImage]);
+        if (retryError) {
+          console.error('Supabase retry insert error:', retryError);
+          throw retryError;
+        }
+        return { success: true, note: 'Saved without image due to size' };
+      }
+      
       throw error;
     }
     return { success: true };

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
+  syncWithSupabase,
   getOrders, 
   updateOrderStatus, 
   updateOrderPrice,
@@ -54,7 +55,8 @@ const AdminPortal: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const refreshData = () => {
+  const refreshData = async () => {
+    await syncWithSupabase();
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
   };
@@ -68,15 +70,15 @@ const AdminPortal: React.FC = () => {
     }
   };
 
-  const handleStatusChange = (orderId: string, status: OrderStatus) => {
-    updateOrderStatus(orderId, status);
-    refreshData();
+  const handleStatusChange = async (orderId: string, status: OrderStatus) => {
+    await updateOrderStatus(orderId, status);
+    await refreshData();
   };
 
-  const handleCancelOrder = (orderId: string) => {
+  const handleCancelOrder = async (orderId: string) => {
     if (confirm('Permanently delete this order record?')) {
-      deleteOrder(orderId);
-      refreshData();
+      await deleteOrder(orderId);
+      await refreshData();
     }
   };
 
@@ -84,15 +86,15 @@ const AdminPortal: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const newImg: GalleryImage = {
           id: 'img_' + Math.random().toString(36).substr(2, 9),
           url: reader.result as string,
           displayMode: displayMode,
           createdAt: new Date().toISOString()
         };
-        addGalleryImage(newImg);
-        refreshData();
+        await addGalleryImage(newImg);
+        await refreshData();
         setLastAction('New image added to storefront!');
         setTimeout(() => setLastAction(null), 3000);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -536,10 +538,10 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.estimatedMileage !== undefined && (
+                    {order.distance !== undefined && (
                       <div className="mt-4 pt-4 border-t border-slate-200/50">
                         <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
-                        <p className="text-lg font-black text-slate-900">{order.estimatedMileage.toFixed(1)} miles</p>
+                        <p className="text-lg font-black text-slate-900">{order.distance.toFixed(1)} miles</p>
                       </div>
                     )}
                   </div>
@@ -552,11 +554,11 @@ const AdminPortal: React.FC = () => {
                           type="number" 
                           className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-pink-300"
                           defaultValue={order.totalPrice ? (order.totalPrice - (order.deliveryFee || 0)) : 0}
-                          onBlur={(e) => {
+                          onBlur={async (e) => {
                             const base = parseFloat(e.target.value) || 0;
                             const fee = order.deliveryFee || 0;
-                            updateOrderPrice(order.id, base + fee, fee);
-                            refreshData();
+                            await updateOrderPrice(order.id, base + fee, fee);
+                            await refreshData();
                             setLastAction('Price updated');
                             setTimeout(() => setLastAction(null), 2000);
                           }}
@@ -568,11 +570,11 @@ const AdminPortal: React.FC = () => {
                           type="number" 
                           className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-pink-300"
                           defaultValue={order.deliveryFee || 0}
-                          onBlur={(e) => {
+                          onBlur={async (e) => {
                             const fee = parseFloat(e.target.value) || 0;
                             const base = (order.totalPrice || 0) - (order.deliveryFee || 0);
-                            updateOrderPrice(order.id, base + fee, fee);
-                            refreshData();
+                            await updateOrderPrice(order.id, base + fee, fee);
+                            await refreshData();
                             setLastAction('Delivery fee updated');
                             setTimeout(() => setLastAction(null), 2000);
                           }}
