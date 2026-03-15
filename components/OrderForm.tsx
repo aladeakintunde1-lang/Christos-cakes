@@ -89,13 +89,16 @@ const OrderForm: React.FC = () => {
     setLoading(true);
     const finalOrder = {
       ...order,
-      totalPrice: 0,
-      deliveryFee: 0,
+      totalPrice: order.totalPrice || 0,
+      deliveryFee: order.deliveryFee || 0,
     } as Order;
     
+    console.log('Attempting to save order:', finalOrder.id);
     const result = await saveOrder(finalOrder);
     if (!result.success) {
-      alert('There was an issue saving your order to our database. Please try again or contact us directly.');
+      const errorMsg = (result.error as any)?.message || 'Unknown database error';
+      console.error('Order save failed:', result.error);
+      alert(`There was an issue saving your order: ${errorMsg}. Please try again or contact us directly.`);
       setLoading(false);
       return;
     }
