@@ -78,6 +78,14 @@ export const saveOrder = async (order: Order) => {
     if (error) {
       console.error('Supabase insert error:', error);
       
+      // Handle missing column or other schema issues (e.g. 'distance' column missing)
+      if (error.message?.includes('column') || error.code === '42703') {
+        console.warn('Schema mismatch detected. Retrying without distance field...');
+        const { distance, ...orderWithoutDistance } = order;
+        const { error: retryError } = await supabase.from('orders').insert([orderWithoutDistance]);
+        if (!retryError) return { success: true, note: 'Saved without distance info due to schema mismatch' };
+      }
+
       // If it's a size issue or similar, try saving without the large image
       if (order.inspirationImage) {
         console.warn('Retrying save without inspiration image...');
