@@ -108,16 +108,21 @@ const OrderForm: React.FC = () => {
       try {
         // Remove large image data before sending to webhook to prevent payload size issues
         const { inspirationImage, ...orderData } = finalOrder;
+        const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
         
-        await fetch(N8N_WEBHOOK_URL, {
+        const response = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             ...orderData, 
             type: 'NEW_ORDER',
-            appUrl: window.location.origin 
+            appUrl: appUrl
           })
         });
+
+        if (!response.ok) {
+          console.error(`Webhook responded with status: ${response.status}`);
+        }
       } catch (err) {
         console.error('Failed to send order to n8n:', err);
       }
