@@ -9,7 +9,7 @@ import { Order, FulfillmentType } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
 
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const OrderForm: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +38,8 @@ const OrderForm: React.FC = () => {
     messageOnCake: '',
     inspirationLink: '',
   });
+
+  const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localStorage.getItem('sweettrack_webhook_url');
 
   const handlePostcodeChange = async (postcode: string) => {
     const pc = postcode.toUpperCase().trim();
@@ -104,25 +106,20 @@ const OrderForm: React.FC = () => {
     }
 
     // Send to n8n if configured
-    if (N8N_WEBHOOK_URL) {
+    if (activeWebhookUrl) {
       try {
         // Remove large image data before sending to webhook to prevent payload size issues
         const { inspirationImage, ...orderData } = finalOrder;
-        const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
         
-        const response = await fetch(N8N_WEBHOOK_URL, {
+        await fetch(activeWebhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             ...orderData, 
             type: 'NEW_ORDER',
-            appUrl: appUrl
+            appUrl: window.location.origin 
           })
         });
-
-        if (!response.ok) {
-          console.error(`Webhook responded with status: ${response.status}`);
-        }
       } catch (err) {
         console.error('Failed to send order to n8n:', err);
       }

@@ -16,7 +16,7 @@ import {
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -30,8 +30,11 @@ const AdminPortal: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
+  const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(localStorage.getItem('sweettrack_webhook_url') || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localWebhookUrl;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -159,44 +162,6 @@ const AdminPortal: React.FC = () => {
       setGalleryImages(prev => prev.filter(img => img.id !== id));
       setLastAction('Photo deleted');
       setTimeout(() => setLastAction(null), 2000);
-    }
-  };
-
-  const [isSendingInvoice, setIsSendingInvoice] = useState<string | null>(null);
-
-  const handleSendInvoice = async (order: Order) => {
-    if (!N8N_WEBHOOK_URL) {
-      alert('n8n Webhook URL not configured in environment variables (VITE_N8N_WEBHOOK_URL)');
-      return;
-    }
-
-    setIsSendingInvoice(order.id);
-    try {
-      // Remove large image data before sending to webhook
-      const { inspirationImage, ...orderData } = order;
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      
-      const response = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...orderData, 
-          type: 'SEND_INVOICE', 
-          appUrl: appUrl
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Webhook responded with status: ${response.status}`);
-      }
-
-      setLastAction('Invoice email triggered');
-      setTimeout(() => setLastAction(null), 3000);
-    } catch (err) {
-      console.error('Failed to trigger invoice email:', err);
-      alert(`Failed to trigger email: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsSendingInvoice(null);
     }
   };
 
@@ -478,6 +443,48 @@ const AdminPortal: React.FC = () => {
                 </div>
               </div>
 
+              <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 font-serif">Automation (n8n)</h3>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="https://your-n8n-instance.com/webhook/..."
+                        className="flex-1 p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
+                        value={localWebhookUrl}
+                        onChange={e => {
+                          setLocalWebhookUrl(e.target.value);
+                          localStorage.setItem('sweettrack_webhook_url', e.target.value);
+                        }}
+                      />
+                    </div>
+                    {N8N_WEBHOOK_URL_ENV && (
+                      <p className="mt-3 text-[9px] text-green-600 font-bold uppercase tracking-widest">✓ Environment Variable Configured</p>
+                    )}
+                    {!activeWebhookUrl && (
+                      <p className="mt-3 text-[9px] text-rose-500 font-bold uppercase tracking-widest animate-pulse">⚠ Webhook URL Missing</p>
+                    )}
+                  </div>
+                  
+                  <div className="p-6 bg-white rounded-2xl border border-slate-100">
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      This URL connects your studio to n8n for automated order notifications and client emails. 
+                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n_workflow.json</code> in the project root.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
@@ -619,34 +626,38 @@ const AdminPortal: React.FC = () => {
                         />
                       </div>
                       
-                      <div className="flex flex-col gap-3">
-                        <button 
-                          disabled={!order.totalPrice || order.totalPrice <= 0 || isSendingInvoice === order.id}
-                          onClick={() => handleSendInvoice(order)}
-                          className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300 flex items-center justify-center gap-2"
-                        >
-                          {isSendingInvoice === order.id ? (
-                            <>
-                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            'Send Invoice to Client'
-                          )}
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-                            const link = `${appUrl}/#/invoice/${order.id}`;
-                            navigator.clipboard.writeText(link);
-                            setLastAction('Invoice link copied');
-                            setTimeout(() => setLastAction(null), 2000);
-                          }}
-                          className="w-full bg-white text-slate-400 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:text-pink-600 transition-all border border-slate-100"
-                        >
-                          Copy Invoice Link
-                        </button>
-                      </div>
+                      <button 
+                        disabled={!order.totalPrice || order.totalPrice <= 0}
+                        onClick={async () => {
+                          if (activeWebhookUrl) {
+                            try {
+                              // Remove large image data before sending to webhook
+                              const { inspirationImage, ...orderData } = order;
+                              
+                              await fetch(activeWebhookUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                  ...orderData, 
+                                  type: 'SEND_INVOICE', 
+                                  appUrl: window.location.origin 
+                                })
+                              });
+                              setLastAction('Invoice email triggered');
+                              setTimeout(() => setLastAction(null), 3000);
+                            } catch (err) {
+                              console.error(err);
+                              alert('Failed to trigger email. Check your Webhook URL.');
+                            }
+                          } else {
+                            setViewMode('Settings');
+                            alert('Automation Webhook not configured. Please set it in Settings.');
+                          }
+                        }}
+                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300"
+                      >
+                        Send Invoice to Client
+                      </button>
                     </div>
                   </div>
                 </div>
