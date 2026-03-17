@@ -2,7 +2,12 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Cormorant Garamond", serif;
+  --font-serif: "Playfair Display", serif;
+  
+  --color-luxury-bg: #fffafa;
+  --color-luxury-ink: #1c1917;
+  --color-luxury-accent: #be185d;
+  --color-luxury-muted: #78716c;
   
   --color-brand-pink-light: #fffafa;
   --color-brand-pink: #fdf2f8;
@@ -41,12 +46,44 @@
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: contain;
-    @apply text-brand-ink antialiased bg-[#fffafa];
+    @apply text-luxury-ink antialiased bg-luxury-bg;
   }
 
   h1, h2, h3, .font-serif {
     font-family: var(--font-serif);
     @apply tracking-tight font-light;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-no-bg {
+    background: transparent !important;
+    color: black !important;
+    border: 1px solid #eee !important;
+  }
+  .print-hide {
+    display: none !important;
+  }
+  .print-black {
+    color: black !important;
+  }
+  .print-p-0 {
+    padding: 0 !important;
+  }
+  .print-m-0 {
+    margin: 0 !important;
+  }
+  .print-shadow-none {
+    box-shadow: none !important;
   }
 }
 

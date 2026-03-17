@@ -46,96 +46,97 @@ const InvoiceView: React.FC = () => {
   const dueDate = new Date(order.deliveryDate).toLocaleDateString();
 
   return (
-    <div className="max-w-4xl mx-auto my-12 bg-white shadow-2xl rounded-none border border-slate-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:m-0 print:rounded-none">
+    <div className="max-w-4xl mx-auto my-12 bg-white shadow-2xl rounded-none border border-slate-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:m-0 print:rounded-none print:max-w-full">
       {/* TOP DECORATIVE BAR */}
-      <div className="h-1.5 w-full bg-luxury-accent" />
+      <div className="h-2 w-full bg-luxury-accent print:h-1" />
       
-      <div className="p-10 md:p-16">
+      <div className="p-10 md:p-20 print:p-12">
         {/* HEADER SECTION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16 pb-12 border-b border-slate-100">
-          <div className="space-y-6">
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 bg-white rounded-none flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 shadow-inner">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20 pb-12 border-b border-slate-100">
+          <div className="space-y-8">
+            <div className="flex items-center gap-8">
+              <div className="w-28 h-28 bg-white rounded-none flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 shadow-sm p-2">
                 <img 
                   src={brandLogo} 
                   alt="Christos Cakes Logo" 
-                  className="w-full h-full object-contain p-2"
+                  className="w-full h-full object-contain"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <div>
-                <h1 className="text-4xl font-light text-luxury-ink font-serif tracking-tight">Christos Cakes</h1>
-                <p className="small-caps text-luxury-accent mt-1">Bespoke Luxury Cakes</p>
+                <h1 className="text-5xl font-light text-luxury-ink font-serif tracking-tight leading-none">Christos Cakes</h1>
+                <p className="small-caps text-luxury-accent mt-3 tracking-[0.3em] text-xs">Bespoke Luxury Cakes</p>
               </div>
             </div>
-            <div className="text-xs text-luxury-muted leading-relaxed space-y-1">
-              <p className="small-caps text-luxury-ink">Studio Location</p>
+            <div className="text-xs text-luxury-muted leading-relaxed space-y-1.5 opacity-80">
+              <p className="small-caps text-luxury-ink font-semibold tracking-wider mb-1">Studio Location</p>
               <p>{PICKUP_ADDRESS}</p>
               <p>{SHOP_POSTCODE}, United Kingdom</p>
+              <p className="pt-2 italic">www.christoscakes.co.uk</p>
             </div>
           </div>
           
-          <div className="flex flex-col justify-between items-end text-right">
-            <div className="relative">
-              <h2 className="text-8xl font-black text-slate-50 uppercase tracking-tighter select-none absolute -top-10 -right-4 z-0">Invoice</h2>
+          <div className="flex flex-col justify-between items-end text-right h-full">
+            <div className="relative mb-12">
+              <h2 className="text-9xl font-black text-slate-50 uppercase tracking-tighter select-none absolute -top-14 -right-6 z-0 opacity-40 print:opacity-10">Invoice</h2>
               <div className="relative z-10">
-                <p className="small-caps text-luxury-muted mb-1">Invoice Number</p>
-                <p className="text-2xl font-light text-luxury-ink font-serif">{invoiceNumber}</p>
+                <p className="small-caps text-luxury-muted mb-2 tracking-widest text-[10px]">Invoice Number</p>
+                <p className="text-3xl font-light text-luxury-ink font-serif">{invoiceNumber}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-8 mt-8">
+            <div className="grid grid-cols-2 gap-12">
               <div>
-                <p className="small-caps text-luxury-muted mb-1">Issue Date</p>
-                <p className="text-sm font-light text-luxury-ink">{issueDate}</p>
+                <p className="small-caps text-luxury-muted mb-2 tracking-widest text-[10px]">Issue Date</p>
+                <p className="text-sm font-medium text-luxury-ink">{issueDate}</p>
               </div>
               <div>
-                <p className="small-caps text-luxury-muted mb-1">Due Date</p>
-                <p className="text-sm font-light text-luxury-ink">{dueDate}</p>
+                <p className="small-caps text-luxury-muted mb-2 tracking-widest text-[10px]">Event Date</p>
+                <p className="text-sm font-medium text-luxury-ink">{dueDate}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* CLIENT & EVENT DETAILS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-16 border border-slate-100 rounded-none overflow-hidden">
-          <div className="p-8 border-b md:border-b-0 md:border-r border-slate-100 bg-luxury-bg">
-            <h3 className="small-caps text-luxury-muted mb-6">Bill To</h3>
-            <div className="space-y-2">
-              <p className="text-2xl font-light text-luxury-ink font-serif">{order.customerName}</p>
-              <div className="text-sm text-luxury-muted space-y-1 font-light">
-                <p className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-luxury-accent" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-20 border border-slate-100 rounded-none overflow-hidden shadow-sm">
+          <div className="p-10 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/50">
+            <h3 className="small-caps text-luxury-muted mb-8 tracking-widest text-[10px] font-semibold">Bill To</h3>
+            <div className="space-y-4">
+              <p className="text-3xl font-light text-luxury-ink font-serif leading-tight">{order.customerName}</p>
+              <div className="text-sm text-luxury-muted space-y-2 font-light">
+                <p className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-luxury-accent/30" />
                   {order.email}
                 </p>
-                <p className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-luxury-accent" />
+                <p className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-luxury-accent/30" />
                   {order.phone}
                 </p>
                 {order.address && (
-                  <p className="flex items-start gap-2 pt-2">
-                    <span className="w-1 h-1 rounded-full bg-luxury-accent mt-1.5" />
-                    <span>{order.address}<br />{order.postcode}</span>
+                  <p className="flex items-start gap-3 pt-3 border-t border-slate-200/50 mt-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-luxury-accent/30 mt-1.5" />
+                    <span className="leading-relaxed">{order.address}<br />{order.postcode}</span>
                   </p>
                 )}
               </div>
             </div>
           </div>
           
-          <div className="p-8 bg-white">
-            <h3 className="small-caps text-luxury-muted mb-6">Event Logistics</h3>
-            <div className="grid grid-cols-1 gap-6">
+          <div className="p-10 bg-white">
+            <h3 className="small-caps text-luxury-muted mb-8 tracking-widest text-[10px] font-semibold">Event Logistics</h3>
+            <div className="grid grid-cols-1 gap-8">
               <div>
-                <p className="small-caps text-[10px] text-luxury-muted mb-1">Fulfillment Type</p>
-                <p className="text-lg font-light text-luxury-ink">{order.fulfillmentType}</p>
+                <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Fulfillment Type</p>
+                <p className="text-xl font-light text-luxury-ink border-b border-slate-100 pb-2 inline-block min-w-[120px]">{order.fulfillmentType}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="small-caps text-[10px] text-luxury-muted mb-1">Event Date</p>
-                  <p className="text-sm font-light text-luxury-ink">{dueDate}</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Collection/Delivery</p>
+                  <p className="text-sm font-medium text-luxury-ink">{dueDate}</p>
                 </div>
                 <div>
-                  <p className="small-caps text-[10px] text-luxury-muted mb-1">Time Slot</p>
-                  <p className="text-sm font-light text-luxury-ink">{order.deliveryTimeSlot}</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Time Slot</p>
+                  <p className="text-sm font-medium text-luxury-ink">{order.deliveryTimeSlot}</p>
                 </div>
               </div>
             </div>
@@ -143,56 +144,56 @@ const InvoiceView: React.FC = () => {
         </div>
 
         {/* ITEMS TABLE */}
-        <div className="mb-16">
+        <div className="mb-20">
           <table className="w-full">
             <thead>
-              <tr className="small-caps text-luxury-muted border-b border-slate-200">
-                <th className="text-left py-6 px-4">Description</th>
-                <th className="text-right py-6 px-4">Rate</th>
-                <th className="text-right py-6 px-4">Qty</th>
-                <th className="text-right py-6 px-4">Amount</th>
+              <tr className="small-caps text-luxury-muted border-b-2 border-luxury-ink/5">
+                <th className="text-left py-8 px-6 tracking-widest text-[10px]">Description</th>
+                <th className="text-right py-8 px-6 tracking-widest text-[10px]">Rate</th>
+                <th className="text-right py-8 px-6 tracking-widest text-[10px]">Qty</th>
+                <th className="text-right py-8 px-6 tracking-widest text-[10px]">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-100">
               <tr>
-                <td className="py-8 px-4">
-                  <p className="text-lg font-light text-luxury-ink font-serif">{order.size} Bespoke Cake</p>
-                  <div className="mt-3 space-y-2">
+                <td className="py-12 px-6">
+                  <p className="text-2xl font-light text-luxury-ink font-serif mb-4">{order.size} Bespoke Cake</p>
+                  <div className="space-y-4 pl-4 border-l-2 border-luxury-accent/10">
                     <div>
-                      <p className="small-caps text-[9px] text-luxury-muted">Flavors & Fillings</p>
+                      <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Flavors & Fillings</p>
                       <p className="text-xs text-luxury-muted leading-relaxed max-w-md font-light">{order.flavor || 'Not specified'}</p>
                     </div>
                     <div>
-                      <p className="small-caps text-[9px] text-luxury-muted">Custom Message</p>
+                      <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Custom Message</p>
                       <p className="text-xs text-luxury-muted italic leading-relaxed max-w-md font-light">"{order.messageOnCake || 'No message requested'}"</p>
                     </div>
                     {order.inspirationImage && (
                       <div className="pt-4">
-                        <p className="small-caps text-[9px] text-luxury-muted mb-2">Inspiration Image</p>
-                        <div className="rounded-none overflow-hidden border border-slate-100 max-w-[200px]">
+                        <p className="small-caps text-[9px] text-luxury-muted mb-3 tracking-widest">Inspiration Image</p>
+                        <div className="rounded-none overflow-hidden border border-slate-100 max-w-[240px] shadow-sm">
                           <img src={order.inspirationImage} alt="Inspiration" className="w-full h-auto" referrerPolicy="no-referrer" />
                         </div>
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="py-8 px-4 text-right text-sm font-light text-luxury-muted">
+                <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
                   {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
                 </td>
-                <td className="py-8 px-4 text-right text-sm font-light text-luxury-muted">1</td>
-                <td className="py-8 px-4 text-right text-lg font-light text-luxury-ink">
+                <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
+                <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
                   {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
                 </td>
               </tr>
               {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                 <tr>
-                  <td className="py-8 px-4">
-                    <p className="text-lg font-light text-luxury-ink font-serif">Luxury Delivery Service</p>
-                    <p className="text-xs text-luxury-muted mt-2 font-light">Professional hand-delivery to {order.postcode}</p>
+                  <td className="py-10 px-6">
+                    <p className="text-xl font-light text-luxury-ink font-serif">Luxury Delivery Service</p>
+                    <p className="text-xs text-luxury-muted mt-2 font-light opacity-70">Professional hand-delivery to {order.postcode}</p>
                   </td>
-                  <td className="py-8 px-4 text-right text-sm font-light text-luxury-muted">£{order.deliveryFee.toFixed(2)}</td>
-                  <td className="py-8 px-4 text-right text-sm font-light text-luxury-muted">1</td>
-                  <td className="py-8 px-4 text-right text-lg font-light text-luxury-ink">£{order.deliveryFee.toFixed(2)}</td>
+                  <td className="py-10 px-6 text-right text-sm font-medium text-luxury-muted">£{order.deliveryFee.toFixed(2)}</td>
+                  <td className="py-10 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
+                  <td className="py-10 px-6 text-right text-xl font-light text-luxury-ink font-serif">£{order.deliveryFee.toFixed(2)}</td>
                 </tr>
               )}
             </tbody>
@@ -200,94 +201,103 @@ const InvoiceView: React.FC = () => {
         </div>
 
         {/* TOTALS & TERMS */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          <div className="lg:col-span-7 space-y-8">
-            <div className="bg-luxury-bg p-8 rounded-none border border-slate-100">
-              <h3 className="small-caps text-luxury-muted mb-6">Terms & Conditions</h3>
-              <ul className="text-[10px] text-luxury-muted space-y-3 leading-relaxed font-light">
-                <li className="flex gap-3">
-                  <span className="text-luxury-accent font-bold">01</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+          <div className="lg:col-span-7 space-y-10">
+            <div className="bg-slate-50/50 p-10 rounded-none border border-slate-100">
+              <h3 className="small-caps text-luxury-muted mb-8 tracking-widest text-[10px] font-semibold">Terms & Conditions</h3>
+              <ul className="text-[10px] text-luxury-muted space-y-4 leading-relaxed font-light">
+                <li className="flex gap-4">
+                  <span className="text-luxury-accent font-bold opacity-50">01</span>
                   <span>A 50% non refundable deposit is require to confirm all custom cake orders.</span>
                 </li>
-                <li className="flex gap-3">
-                  <span className="text-luxury-accent font-bold">02</span>
+                <li className="flex gap-4">
+                  <span className="text-luxury-accent font-bold opacity-50">02</span>
                   <span>The deposit must be paid minimum of 6weeks before collection date to secure your booking.</span>
                 </li>
-                <li className="flex gap-3">
-                  <span className="text-luxury-accent font-bold">03</span>
+                <li className="flex gap-4">
+                  <span className="text-luxury-accent font-bold opacity-50">03</span>
                   <span>The remaining 50% balance must be paid atleast 2weeks before collection/delivery date.</span>
                 </li>
-                <li className="flex gap-3">
-                  <span className="text-luxury-accent font-bold">04</span>
+                <li className="flex gap-4">
+                  <span className="text-luxury-accent font-bold opacity-50">04</span>
                   <span>Store your luxury cake in a cool, dry place away from direct sunlight. Refrigeration recommended for fresh cream designs.</span>
                 </li>
               </ul>
             </div>
 
-            <div className="bg-luxury-bg p-8 rounded-none border border-luxury-accent/10">
-              <h3 className="small-caps text-luxury-accent mb-6">Bank Transfer Details</h3>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-8">
+            <div className="bg-white p-10 rounded-none border-l-4 border-luxury-accent shadow-sm">
+              <h3 className="small-caps text-luxury-accent mb-8 tracking-widest text-[10px] font-bold">Secure Bank Transfer</h3>
+              <div className="grid grid-cols-2 gap-y-6 gap-x-12">
                 <div>
-                  <p className="small-caps text-[9px] text-luxury-muted mb-1">Bank Name</p>
-                  <p className="text-sm font-light text-luxury-ink">Monzo</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Bank Name</p>
+                  <p className="text-sm font-semibold text-luxury-ink">Monzo</p>
                 </div>
                 <div>
-                  <p className="small-caps text-[9px] text-luxury-muted mb-1">Account Name</p>
-                  <p className="text-sm font-light text-luxury-ink">Christianah Alade</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Account Name</p>
+                  <p className="text-sm font-semibold text-luxury-ink">Christianah Alade</p>
                 </div>
                 <div>
-                  <p className="small-caps text-[9px] text-luxury-muted mb-1">Sort Code</p>
-                  <p className="text-sm font-light text-luxury-ink font-mono">04-00-03</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Sort Code</p>
+                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">04-00-03</p>
                 </div>
                 <div>
-                  <p className="small-caps text-[9px] text-luxury-muted mb-1">Account Number</p>
-                  <p className="text-sm font-light text-luxury-ink font-mono">90709406</p>
+                  <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Account Number</p>
+                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">90709406</p>
                 </div>
-                <div className="col-span-2 pt-2 border-t border-luxury-accent/10">
-                  <p className="small-caps text-luxury-accent mb-1">Reference</p>
-                  <p className="text-xs font-light text-luxury-accent italic">Your name only please</p>
+                <div className="col-span-2 pt-4 border-t border-slate-100">
+                  <p className="small-caps text-luxury-accent mb-1 text-[10px] tracking-widest font-bold">Reference</p>
+                  <p className="text-xs font-light text-luxury-muted italic">Please use your <span className="text-luxury-accent font-medium">full name</span> as the reference only.</p>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex justify-between small-caps text-luxury-muted px-4">
-              <span>Subtotal</span>
-              <span className="text-luxury-ink">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
+          <div className="lg:col-span-5 space-y-6">
+            <div className="space-y-3 px-6">
+              <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
+                <span>Subtotal</span>
+                <span className="text-luxury-ink font-medium">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
+              </div>
+              <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
+                <span>VAT (0%)</span>
+                <span className="text-luxury-ink font-medium">£0.00</span>
+              </div>
             </div>
-            <div className="flex justify-between small-caps text-luxury-muted px-4">
-              <span>VAT (0%)</span>
-              <span className="text-luxury-ink">£0.00</span>
+            
+            <div className="bg-luxury-ink text-white p-10 rounded-none shadow-2xl transform hover:scale-[1.02] transition-transform print:bg-white print:text-black print:border-4 print:border-black print:shadow-none">
+              <span className="small-caps text-white/60 tracking-[0.3em] text-[10px] mb-4 block print:text-black/60">Total Amount Due</span>
+              <span className="text-6xl font-light font-serif leading-none block">
+                {order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}
+              </span>
             </div>
-            <div className="flex justify-between items-center bg-luxury-ink text-white p-8 rounded-none shadow-xl">
-              <span className="small-caps text-white/70">Total Amount</span>
-              <span className="text-4xl font-light font-serif">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
-            </div>
-            <div className="pt-4 px-4 text-right">
-              <p className="small-caps text-luxury-muted mb-1">Payment Method</p>
-              <p className="text-sm font-light text-luxury-ink">Bank Transfer</p>
-              <p className="text-[10px] text-luxury-muted mt-1 italic font-light">Please use your name as reference</p>
+            
+            <div className="pt-8 px-6 text-right space-y-2">
+              <p className="small-caps text-luxury-muted tracking-widest text-[9px]">Payment Method</p>
+              <p className="text-sm font-semibold text-luxury-ink">Bank Transfer</p>
+              <div className="flex items-center justify-end gap-2 mt-4">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-widest">Awaiting Payment</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="mt-20 pt-12 border-t border-slate-100 flex flex-col items-center">
-          <p className="small-caps text-luxury-muted mb-10 opacity-50">Thank you for choosing Christos Cakes</p>
-          <div className="flex flex-wrap justify-center gap-4 print:hidden">
+        <div className="mt-24 pt-16 border-t border-slate-100 flex flex-col items-center">
+          <p className="small-caps text-luxury-muted mb-12 opacity-40 tracking-[0.4em] text-[10px]">Thank you for choosing Christos Cakes</p>
+          <div className="flex flex-wrap justify-center gap-6 print:hidden">
             <button 
               onClick={() => window.print()}
-              className="px-10 py-4 bg-luxury-ink text-white rounded-none small-caps hover:bg-luxury-accent transition-all shadow-2xl active:scale-95 flex items-center gap-3"
+              className="px-12 py-5 bg-luxury-ink text-white rounded-none small-caps hover:bg-luxury-accent transition-all shadow-xl active:scale-95 flex items-center gap-4 tracking-widest font-semibold"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
               Print Invoice
             </button>
             <button 
               onClick={() => navigate(-1)}
-              className="px-10 py-4 bg-luxury-bg text-luxury-muted rounded-none small-caps border border-slate-100 hover:bg-white transition-all active:scale-95"
+              className="px-12 py-5 bg-white text-luxury-muted rounded-none small-caps border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 tracking-widest"
             >
               Go Back
             </button>
