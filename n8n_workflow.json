@@ -1,5 +1,5 @@
 {
-  "name": "Christos Cakes Automation",
+  "name": "Christos Cakes Automation (Twilio WhatsApp)",
   "nodes": [
     {
       "parameters": {
@@ -37,17 +37,13 @@
     },
     {
       "parameters": {
-        "sendTo": "aladeakintunde1@gmail.com",
-        "subject": "🎂 New Bespoke Order: {{ $json.customerName }}",
-        "message": "<h1>New Order Received</h1><p><strong>Customer:</strong> {{ $json.customerName }}</p><p><strong>Cake Size:</strong> {{ $json.size }}</p><p><strong>Flavor:</strong> {{ $json.flavor }}</p><p><strong>Delivery Date:</strong> {{ $json.deliveryDate }}</p><p><strong>Message on Cake:</strong> {{ $json.messageOnCake }}</p><br><a href=\"{{ $json.adminUrl }}\" style=\"background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View in Admin Portal</a>",
-        "appendAttribution": false,
-        "options": {
-          "html": true
-        }
+        "from": "whatsapp:+14155238886",
+        "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
+        "message": "🎂 *New Bespoke Order Received!*\n\n*Customer:* {{ $json.customerName }}\n*Size:* {{ $json.size }}\n*Flavor:* {{ $json.flavor }}\n*Date:* {{ $json.deliveryDate }}\n*Message:* {{ $json.messageOnCake }}\n\nView in Admin Portal: {{ $json.appUrl }}/#/admin"
       },
-      "name": "Notify Admin (New Order)",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2,
+      "name": "Notify Admin (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
       "position": [
         600,
         450
@@ -55,17 +51,13 @@
     },
     {
       "parameters": {
-        "sendTo": "={{ $json.email }}",
-        "subject": "🧾 Your Christos Cakes Invoice - Order #{{ $json.id }}",
-        "message": "<h1>Your Invoice is Ready</h1><p>Hi {{ $json.customerName }},</p><p>The baker has reviewed your bespoke cake order and your invoice is now ready.</p><p><strong>Total Amount:</strong> £{{ $json.totalPrice }}</p><br><a href=\"{{ $json.appUrl }}#/invoice/{{ $json.id }}\" style=\"background-color: #db2777; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View & Pay Invoice</a><br><p>Thank you for choosing Christos Cakes!</p>",
-        "appendAttribution": false,
-        "options": {
-          "html": true
-        }
+        "from": "whatsapp:+14155238886",
+        "to": "=whatsapp:{{ $json.phone }}",
+        "message": "🧾 *Your Christos Cakes Invoice is Ready!*\n\nHi {{ $json.customerName }},\n\nThe baker has reviewed your bespoke cake order and your invoice is now ready.\n\n*Total Amount:* £{{ $json.totalPrice }}\n\n*View & Pay Invoice:* {{ $json.appUrl }}#/invoice/{{ $json.id }}\n\nThank you for choosing Christos Cakes!"
       },
-      "name": "Send Client Invoice",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2,
+      "name": "Send Client Invoice (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
       "position": [
         600,
         150
@@ -100,21 +92,21 @@
       "main": [
         [
           {
-            "node": "Send Client Invoice",
+            "node": "Send Client Invoice (WhatsApp)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Notify Admin (New Order)",
+            "node": "Notify Admin (WhatsApp)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Client Invoice": {
+    "Send Client Invoice (WhatsApp)": {
       "main": [
         [
           {
@@ -125,7 +117,7 @@
         ]
       ]
     },
-    "Notify Admin (New Order)": {
+    "Notify Admin (WhatsApp)": {
       "main": [
         [
           {
@@ -139,5 +131,5 @@
   },
   "active": true,
   "settings": {},
-  "id": "christos-cakes-automation"
+  "id": "christos-cakes-automation-twilio"
 }
