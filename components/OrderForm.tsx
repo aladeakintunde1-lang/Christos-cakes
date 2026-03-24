@@ -2,10 +2,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL } from '../constants';
+import { 
+  Cake, 
+  Cookie, 
+  Store, 
+  Truck, 
+  Calendar, 
+  Clock, 
+  ChevronLeft, 
+  X, 
+  Check, 
+  Instagram, 
+  Image as ImageIcon, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  FileText,
+  Info,
+  ChevronDown,
+  Smartphone
+} from 'lucide-react';
+import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, PASTRIES } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder } from '../utils/storage';
-import { Order, FulfillmentType } from '../types';
+import { Order, FulfillmentType, OrderCategory } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
 
@@ -22,6 +42,8 @@ const OrderForm: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
+    category: 'Cake',
+    pastries: [],
     flavor: '',
     size: SIZES[0].label,
     deliveryFee: 0,
@@ -38,6 +60,62 @@ const OrderForm: React.FC = () => {
     messageOnCake: '',
     inspirationLink: '',
   });
+
+  const calculatePastryTotal = () => {
+    if (order.category !== 'Pastries' || !order.pastries) return 0;
+    return order.pastries.reduce((total, p) => {
+      const pastryDef = PASTRIES.find(pd => pd.id === p.id);
+      return total + ((pastryDef as any)?.price || 0) * p.quantity;
+    }, 0);
+  };
+
+  const handlePastryQuantity = (id: string, name: string, delta: number) => {
+    setOrder(prev => {
+      const currentPastries = prev.pastries || [];
+      const existing = currentPastries.find(p => p.id === id);
+      
+      if (existing) {
+        const newQuantity = Math.max(0, existing.quantity + delta);
+        if (newQuantity === 0) {
+          return { ...prev, pastries: currentPastries.filter(p => p.id !== id) };
+        }
+        return {
+          ...prev,
+          pastries: currentPastries.map(p => p.id === id ? { ...p, quantity: newQuantity } : p)
+        };
+      } else if (delta > 0) {
+        return {
+          ...prev,
+          pastries: [...currentPastries, { id, name, quantity: delta }]
+        };
+      }
+      return prev;
+    });
+  };
+
+  const setPastryQuantity = (id: string, name: string, quantity: number) => {
+    setOrder(prev => {
+      const currentPastries = prev.pastries || [];
+      const newQuantity = Math.max(0, quantity);
+      
+      if (newQuantity === 0) {
+        return { ...prev, pastries: currentPastries.filter(p => p.id !== id) };
+      }
+      
+      const existing = currentPastries.find(p => p.id === id);
+      if (existing) {
+        return {
+          ...prev,
+          pastries: currentPastries.map(p => p.id === id ? { ...p, quantity: newQuantity } : p)
+        };
+      } else {
+        return {
+          ...prev,
+          pastries: [...currentPastries, { id, name, quantity: newQuantity }]
+        };
+      }
+    });
+  };
 
   const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localStorage.getItem('sweettrack_webhook_url');
 
@@ -89,9 +167,10 @@ const OrderForm: React.FC = () => {
 
   const handleFinish = async () => {
     setLoading(true);
+    const pastryTotal = calculatePastryTotal();
     const finalOrder = {
       ...order,
-      totalPrice: order.totalPrice || 0,
+      totalPrice: order.category === 'Pastries' ? pastryTotal : (order.totalPrice || 0),
       deliveryFee: order.deliveryFee || 0,
     } as Order;
     
@@ -153,23 +232,19 @@ const OrderForm: React.FC = () => {
             transition={{ type: "spring", damping: 15, stiffness: 200 }}
             className="w-28 h-28 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-12 border border-pink-100 shadow-inner"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
+            <Check className="h-14 w-14 text-pink-600" strokeWidth={2.5} />
           </motion.div>
           
           <h2 className="text-6xl font-serif text-pink-950 mb-8 leading-[0.9] tracking-tighter">Your Journey <br/><span className="italic text-pink-600">Begins</span></h2>
           <p className="text-slate-500 mb-16 leading-relaxed font-medium text-lg max-w-lg mx-auto">
-            Thank you, <span className="font-bold text-pink-800">{order.customerName}</span>. Your bespoke luxury cake request has been received. We are preparing to bring your vision to life.
+            Thank you, <span className="font-bold text-pink-800">{order.customerName}</span>. Your bespoke luxury cake order has been received. We are preparing to bring your vision to life.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
             <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 text-left animate-slideIn shadow-sm" style={{ animationDelay: '0.2s' }}>
               <div className="flex items-center gap-4 mb-5">
                 <div className="p-3 bg-pink-50 rounded-2xl border border-pink-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+                  <Smartphone className="h-5 w-5 text-pink-500" strokeWidth={1.5} />
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Client Alert</span>
               </div>
@@ -179,9 +254,7 @@ const OrderForm: React.FC = () => {
             <div className="bg-white/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/80 text-left animate-slideIn shadow-sm" style={{ animationDelay: '0.4s' }}>
               <div className="flex items-center gap-4 mb-5">
                 <div className="p-3 bg-pink-50 rounded-2xl border border-pink-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <Info className="h-5 w-5 text-pink-500" strokeWidth={1.5} />
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Atelier Ping</span>
               </div>
@@ -193,13 +266,11 @@ const OrderForm: React.FC = () => {
             <motion.button 
               whileHover={{ scale: 1.02, y: -4 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(`/invoice/${order.id}`)}
+              onClick={() => navigate(`/order/${order.id}`)}
               className="w-full bg-pink-700 text-white py-7 rounded-full font-bold text-sm tracking-[0.3em] hover:bg-pink-800 transition-all shadow-2xl shadow-pink-200/40 uppercase flex items-center justify-center gap-4 border border-white/20"
             >
-              VIEW INVOICE
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              VIEW ORDER
+              <FileText className="h-5 w-5" strokeWidth={2} />
             </motion.button>
             <button 
               onClick={() => navigate('/')}
@@ -222,9 +293,7 @@ const OrderForm: React.FC = () => {
       <div className="glass-card rounded-[3.5rem] p-10 md:p-16 mb-20 shadow-[0_40px_100px_rgba(219,39,119,0.08)] animate-slideIn border-white/80">
         <div className="flex justify-between items-center mb-16">
         <button onClick={() => setStep(prev => Math.max(1, prev - 1))} className={`text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all ${step === 1 ? 'invisible' : ''}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="h-6 w-6" strokeWidth={2} />
         </button>
         <div className="flex flex-col items-center">
           <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 3</span>
@@ -235,14 +304,36 @@ const OrderForm: React.FC = () => {
           </div>
         </div>
         <button onClick={() => navigate('/')} className="text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-6 w-6" strokeWidth={2} />
         </button>
       </div>
 
       {step === 1 && (
         <div className="animate-fadeIn">
+          <h2 className="text-5xl font-serif text-pink-950 mb-3">Order Type</h2>
+          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">What would you like to order today?</p>
+          
+          <div className="grid grid-cols-2 gap-8 mb-16">
+            <button 
+              onClick={() => setOrder(prev => ({ ...prev, category: 'Cake' }))}
+              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Cake' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+            >
+              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Cake' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <Cake className="h-7 w-7" strokeWidth={1.5} />
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Cake</div>
+            </button>
+            <button 
+              onClick={() => setOrder(prev => ({ ...prev, category: 'Pastries' }))}
+              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Pastries' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+            >
+              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Pastries' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <Cookie className="h-7 w-7" strokeWidth={1.5} />
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Pastries</div>
+            </button>
+          </div>
+
           <h2 className="text-5xl font-serif text-pink-950 mb-3">Logistics</h2>
           <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Select your preferred fulfillment method.</p>
           
@@ -252,9 +343,7 @@ const OrderForm: React.FC = () => {
               className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Collection' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
               <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Collection' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+                <Store className="h-7 w-7" strokeWidth={1.5} />
               </div>
               <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Collection</div>
               <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Complimentary</div>
@@ -264,9 +353,7 @@ const OrderForm: React.FC = () => {
               className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Delivery' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
               <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
+                <Truck className="h-7 w-7" strokeWidth={1.5} />
               </div>
               <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Delivery</div>
               <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Bespoke Quote</div>
@@ -345,9 +432,7 @@ const OrderForm: React.FC = () => {
                   <option value="Night">Evening (6pm - 8pm)</option>
                 </select>
                 <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <ChevronDown className="h-6 w-6" strokeWidth={2} />
                 </div>
               </div>
             </div>
@@ -360,146 +445,215 @@ const OrderForm: React.FC = () => {
             onClick={() => setStep(2)}
             className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] disabled:opacity-30 transition-all shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
           >
-            Continue to Design
+            {order.category === 'Cake' ? 'Continue to Design' : 'Continue to Selection'}
           </motion.button>
         </div>
       )}
 
       {step === 2 && (
         <div className="animate-fadeIn">
-          <h2 className="text-5xl font-serif text-pink-950 mb-3">Artistry</h2>
-          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Define the aesthetic of your masterpiece.</p>
+          <h2 className="text-5xl font-serif text-pink-950 mb-3">
+            {order.category === 'Cake' ? 'Artistry' : 'Pastries'}
+          </h2>
+          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">
+            {order.category === 'Cake' ? 'Define the aesthetic of your masterpiece.' : 'Select the pastries you\'d like to include in your order.'}
+          </p>
           
-          <div className="space-y-12">
-            <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
-              <h3 className="text-[11px] font-bold text-pink-950 mb-3 uppercase tracking-[0.4em] flex items-center gap-3">
-                Visual Inspiration
-              </h3>
-              <p className="text-[11px] text-slate-400 mb-10 font-medium">Reference our curated gallery or upload your own vision.</p>
-              
-              <a 
-                href={INSTAGRAM_URL} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-full py-6 px-10 rounded-2xl bg-slate-900 text-white font-bold text-[11px] tracking-[0.4em] mb-10 shadow-2xl hover:bg-slate-800 transition-all uppercase"
-              >
-                Browse @Christoscakes_events
-              </a>
-
-              <div className="space-y-8">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Instagram Reference Link</label>
-                  <input 
-                    type="url" 
-                    placeholder="Paste URL here..."
-                    className="w-full p-6 bg-white rounded-2xl border border-slate-100 text-sm focus:ring-8 focus:ring-pink-50 outline-none transition-all font-medium"
-                    value={order.inspirationLink || ''}
-                    onChange={e => setOrder(prev => ({ ...prev, inspirationLink: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Upload Reference Image</label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full min-h-[200px] p-10 bg-white/60 border-2 border-dashed border-pink-100 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-pink-300 hover:bg-white transition-all group shadow-inner"
-                  >
-                    {order.inspirationImage ? (
-                      <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl">
-                        <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain max-h-[400px]" />
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, inspirationImage: undefined })) }}
-                          className="absolute top-6 right-6 bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-full shadow-2xl hover:bg-rose-600 transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-700 border border-pink-100">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-pink-300 group-hover:text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.3em]">Select from your device</span>
-                      </>
-                    )}
-                  </div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Flavor Palette & Dietary</label>
-              <textarea 
-                placeholder="Describe your desired flavors, fillings, and any dietary requirements..."
-                className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-48 text-base font-medium leading-relaxed shadow-inner"
-                value={order.flavor}
-                onChange={e => setOrder(prev => ({ ...prev, flavor: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-5 uppercase tracking-[0.4em]">Select Tier / Size</label>
-              <div className="grid grid-cols-2 gap-6">
-                {SIZES.map(s => (
-                  <button 
-                    key={s.label}
-                    onClick={() => setOrder(prev => ({ ...prev, size: s.label }))}
-                    className={`p-8 rounded-3xl border-2 text-left transition-all ${order.size === s.label ? 'border-pink-500 bg-pink-50/40 shadow-2xl shadow-pink-200/10' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
-                  >
-                    <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">{s.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Calligraphy / Message</label>
-                <button 
-                  onClick={handleAiHelp}
-                  disabled={loading}
-                  className="text-[10px] font-bold text-pink-600 flex items-center gap-3 hover:text-pink-800 transition-colors uppercase tracking-[0.3em]"
+          {order.category === 'Cake' ? (
+            <div className="space-y-12">
+              <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
+                <h3 className="text-[11px] font-bold text-pink-950 mb-3 uppercase tracking-[0.4em] flex items-center gap-3">
+                  Visual Inspiration
+                </h3>
+                <p className="text-[11px] text-slate-400 mb-10 font-medium">Reference our curated gallery or upload your own vision.</p>
+                
+                <a 
+                  href={INSTAGRAM_URL} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full py-6 px-10 rounded-2xl bg-slate-900 text-white font-bold text-[11px] tracking-[0.4em] mb-10 shadow-2xl hover:bg-slate-800 transition-all uppercase"
                 >
-                  {loading ? 'Generating...' : 'Message Help'}
-                </button>
-              </div>
-              <textarea 
-                placeholder="Message to be written on the cake..."
-                className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-40 text-base font-medium leading-relaxed shadow-inner"
-                value={order.messageOnCake}
-                onChange={e => setOrder(prev => ({ ...prev, messageOnCake: e.target.value }))}
-              />
-              {aiSuggestions.length > 0 && (
-                <div className="mt-8 flex flex-wrap gap-4">
-                  {aiSuggestions.map((s, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => setOrder(prev => ({ ...prev, messageOnCake: s }))}
-                      className="text-[10px] font-bold uppercase tracking-[0.3em] bg-pink-50 text-pink-700 px-6 py-3 rounded-full border border-pink-100 hover:bg-pink-100 transition-all shadow-sm"
+                  Browse @Christoscakes_events
+                </a>
+
+                <div className="space-y-8">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Instagram Reference Link</label>
+                    <input 
+                      type="url" 
+                      placeholder="Paste URL here..."
+                      className="w-full p-6 bg-white rounded-2xl border border-slate-100 text-sm focus:ring-8 focus:ring-pink-50 outline-none transition-all font-medium"
+                      value={order.inspirationLink || ''}
+                      onChange={e => setOrder(prev => ({ ...prev, inspirationLink: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.3em]">Upload Reference Image</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full min-h-[200px] p-10 bg-white/60 border-2 border-dashed border-pink-100 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-pink-300 hover:bg-white transition-all group shadow-inner"
                     >
-                      {s}
+                      {order.inspirationImage ? (
+                        <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl">
+                          <img src={order.inspirationImage} alt="Preview" className="w-full h-auto block object-contain max-h-[400px]" />
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setOrder(prev => ({ ...prev, inspirationImage: undefined })) }}
+                            className="absolute top-6 right-6 bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-full shadow-2xl hover:bg-rose-600 transition-colors"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-700 border border-pink-100">
+                            <ImageIcon className="h-8 w-8 text-pink-300 group-hover:text-pink-500" strokeWidth={1.5} />
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.3em]">Select from your device</span>
+                        </>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Flavor Palette & Dietary</label>
+                <textarea 
+                  placeholder="Describe your desired flavors, fillings, and any dietary requirements..."
+                  className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-48 text-base font-medium leading-relaxed shadow-inner"
+                  value={order.flavor}
+                  onChange={e => setOrder(prev => ({ ...prev, flavor: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 mb-5 uppercase tracking-[0.4em]">Select Tier / Size</label>
+                <div className="grid grid-cols-2 gap-6">
+                  {SIZES.map(s => (
+                    <button 
+                      key={s.label}
+                      onClick={() => setOrder(prev => ({ ...prev, size: s.label }))}
+                      className={`p-8 rounded-3xl border-2 text-left transition-all ${order.size === s.label ? 'border-pink-500 bg-pink-50/40 shadow-2xl shadow-pink-200/10' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+                    >
+                      <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">{s.label}</div>
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Calligraphy / Message</label>
+                  <button 
+                    onClick={handleAiHelp}
+                    disabled={loading}
+                    className="text-[10px] font-bold text-pink-600 flex items-center gap-3 hover:text-pink-800 transition-colors uppercase tracking-[0.3em]"
+                  >
+                    {loading ? 'Generating...' : 'Message Help'}
+                  </button>
+                </div>
+                <textarea 
+                  placeholder="Message to be written on the cake..."
+                  className="w-full p-8 bg-white/40 rounded-[2.5rem] border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-40 text-base font-medium leading-relaxed shadow-inner"
+                  value={order.messageOnCake}
+                  onChange={e => setOrder(prev => ({ ...prev, messageOnCake: e.target.value }))}
+                />
+                {aiSuggestions.length > 0 && (
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    {aiSuggestions.map((s, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setOrder(prev => ({ ...prev, messageOnCake: s }))}
+                        className="text-[10px] font-bold uppercase tracking-[0.3em] bg-pink-50 text-pink-700 px-6 py-3 rounded-full border border-pink-100 hover:bg-pink-100 transition-all shadow-sm"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {PASTRIES.map(pastry => {
+                const selected = order.pastries?.find(p => p.id === pastry.id);
+                const quantity = selected?.quantity || 0;
+                
+                return (
+                  <div 
+                    key={pastry.id}
+                    className={`p-8 rounded-[2rem] border-2 transition-all flex items-center justify-between group ${quantity > 0 ? 'border-pink-500 bg-pink-50/20 shadow-xl shadow-pink-200/10' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+                  >
+                    <div className="flex-1">
+                      <h3 className="text-lg font-serif text-pink-950 mb-1">{pastry.name}</h3>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">{pastry.description}</p>
+                      {(pastry as any).price > 0 && (
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-xs font-bold text-pink-600">£{(pastry as any).price} per pack</span>
+                          {quantity > 0 && (
+                            <span className="text-xs font-bold text-slate-400">Subtotal: £{((pastry as any).price * quantity).toFixed(2)}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-4 bg-white rounded-2xl p-2 shadow-sm border border-slate-50">
+                      <button 
+                        onClick={() => handlePastryQuantity(pastry.id, pastry.name, -1)}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-pink-50 hover:text-pink-500 transition-all"
+                      >
+                        <Minus className="h-5 w-5" strokeWidth={2} />
+                      </button>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={quantity || ''}
+                        onChange={(e) => setPastryQuantity(pastry.id, pastry.name, parseInt(e.target.value) || 0)}
+                        className="w-12 text-center font-bold text-slate-800 tabular-nums bg-transparent border-none outline-none focus:ring-0"
+                        placeholder="0"
+                      />
+                      <button 
+                        onClick={() => handlePastryQuantity(pastry.id, pastry.name, 1)}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-pink-50 hover:text-pink-500 transition-all"
+                      >
+                        <Plus className="h-5 w-5" strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {order.category === 'Pastries' && calculatePastryTotal() > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-12 p-8 rounded-[2.5rem] bg-pink-50/50 border border-pink-100 flex items-center justify-between"
+            >
+              <div>
+                <p className="text-[10px] font-bold text-pink-400 uppercase tracking-[0.4em] mb-1">Estimated Total</p>
+                <p className="text-3xl font-serif text-pink-950 italic">£{calculatePastryTotal().toFixed(2)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Excluding delivery</p>
+              </div>
+            </motion.div>
+          )}
 
           <motion.button 
             whileHover={{ scale: 1.01, y: -2 }}
             whileTap={{ scale: 0.99 }}
+            disabled={order.category === 'Pastries' && (!order.pastries || order.pastries.length === 0)}
             onClick={() => setStep(3)}
-            className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
+            className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20 disabled:opacity-30 transition-all"
           >
             Review Summary
           </motion.button>
@@ -552,18 +706,34 @@ const OrderForm: React.FC = () => {
               <div className="space-y-8">
                 <h3 className="text-[11px] font-bold text-pink-950 uppercase tracking-[0.4em] mb-6">Specifications</h3>
                 <div className="space-y-6">
-                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Flavor</span>
-                    <span className="text-sm font-bold text-pink-900 text-right max-w-[200px] truncate">{order.flavor || 'Not specified'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Size</span>
-                    <span className="text-sm font-bold text-pink-900">{order.size}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-4 border-b border-pink-50">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</span>
-                    <span className="text-sm font-bold text-pink-900 italic">"{order.messageOnCake || 'None'}"</span>
-                  </div>
+                  {order.category === 'Cake' ? (
+                    <>
+                      <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Flavor</span>
+                        <span className="text-sm font-bold text-pink-900 text-right max-w-[200px] truncate">{order.flavor || 'Not specified'}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Size</span>
+                        <span className="text-sm font-bold text-pink-900">{order.size}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</span>
+                        <span className="text-sm font-bold text-pink-900 italic">"{order.messageOnCake || 'None'}"</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      {order.pastries?.map(pastry => (
+                        <div key={pastry.id} className="flex justify-between items-center py-4 border-b border-pink-50">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{pastry.name}</span>
+                          <span className="text-sm font-bold text-pink-900">x{pastry.quantity}</span>
+                        </div>
+                      ))}
+                      {(!order.pastries || order.pastries.length === 0) && (
+                        <p className="text-sm text-slate-400 italic">No pastries selected</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -588,8 +758,17 @@ const OrderForm: React.FC = () => {
 
             <div className="bg-pink-50/30 p-12 rounded-[3rem] text-center border border-pink-100/50">
               <p className="text-[11px] font-bold text-pink-400 mb-4 uppercase tracking-[0.5em]">Final Quote</p>
-              <p className="text-4xl font-serif text-pink-950 italic">Awaiting Atelier Review</p>
-              <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you within 24 hours</p>
+              {order.category === 'Pastries' ? (
+                <>
+                  <p className="text-4xl font-serif text-pink-950 italic">£{calculatePastryTotal().toFixed(2)}</p>
+                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">Plus any applicable delivery fees</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl font-serif text-pink-950 italic">Awaiting Atelier Review</p>
+                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you within 24 hours</p>
+                </>
+              )}
             </div>
           </div>
 

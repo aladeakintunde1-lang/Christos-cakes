@@ -2,6 +2,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
+  LockKeyhole, 
+  Clock, 
+  CalendarClock, 
+  Upload, 
+  Trash2, 
+  Image as ImageIcon, 
+  UploadCloud, 
+  ExternalLink, 
+  Info, 
+  ClipboardList,
+  MapPin,
+  DollarSign
+} from 'lucide-react';
+import { 
   syncWithSupabase,
   getOrders, 
   updateOrderStatus, 
@@ -175,9 +189,7 @@ const AdminPortal: React.FC = () => {
           
           <div className="glass-card p-12 rounded-[2.5rem] shadow-[0_40px_100px_rgba(219,39,119,0.08)] border-white/80 text-center">
             <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+              <LockKeyhole className="h-10 w-10 text-pink-500" strokeWidth={1.5} />
             </div>
             <h2 className="text-4xl font-light mb-3 text-pink-950 font-serif tracking-tight">Studio Access</h2>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">Christos Cakes Management</p>
@@ -203,7 +215,7 @@ const AdminPortal: React.FC = () => {
     );
   }
 
-  const revenue = orders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const revenue = orders.reduce((sum, o) => sum + o.totalPrice || 0, 0);
 
   return (
     <div className="relative max-w-6xl mx-auto pb-32">
@@ -256,25 +268,21 @@ const AdminPortal: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
             <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <span className="text-green-600 font-black text-xl">£</span>
+              <DollarSign className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Total Revenue</h3>
             <p className="text-5xl font-bold text-slate-900 font-serif">£{revenue.toFixed(2)}</p>
           </div>
           <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
             <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <Clock className="h-6 w-6 text-pink-500" strokeWidth={3} />
             </div>
             <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Active Orders</h3>
             <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length}</p>
           </div>
           <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
             <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+              <CalendarClock className="h-6 w-6 text-blue-500" strokeWidth={3} />
             </div>
             <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Collections</h3>
             <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.fulfillmentType === 'Collection').length}</p>
@@ -334,9 +342,7 @@ const AdminPortal: React.FC = () => {
                       onClick={() => fileInputRef.current?.click()} 
                       className="w-full bg-pink-600 text-white py-5 rounded-[1.5rem] font-black text-sm shadow-xl shadow-pink-100 hover:bg-pink-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                      </svg>
+                      <Upload className="h-5 w-5" />
                       UPLOAD PHOTO
                     </button>
                     <input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleAddImage} />
@@ -371,9 +377,7 @@ const AdminPortal: React.FC = () => {
                         onClick={(e) => handleDeleteImage(e, img.id)}
                         className="w-full py-4 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95 border border-red-100"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <Trash2 className="h-4 w-4" strokeWidth={3} />
                         Delete Permanent
                       </button>
                     </div>
@@ -383,9 +387,7 @@ const AdminPortal: React.FC = () => {
                 {galleryImages.length === 0 && (
                   <div className="col-span-full py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center px-8">
                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                      <ImageIcon className="h-10 w-10 text-slate-200" strokeWidth={1.5} />
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 font-serif">Gallery is Empty</h3>
                     <p className="text-slate-400 text-sm mt-2 max-w-xs leading-relaxed font-medium">Use the upload tool on the left to add your beautiful cake photos to the storefront.</p>
@@ -401,11 +403,11 @@ const AdminPortal: React.FC = () => {
         <div className="animate-slideIn max-w-2xl mx-auto">
           <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100">
             <h2 className="text-3xl font-bold text-slate-900 font-serif mb-2">Brand Identity</h2>
-            <p className="text-sm text-slate-400 mb-10 font-medium">Manage your brand assets used across the application and invoices.</p>
+            <p className="text-sm text-slate-400 mb-10 font-medium">Manage your brand assets used across the application and orders.</p>
             
             <div className="space-y-10">
               <div className="flex flex-col items-center p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Current Invoice Logo</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Current Order Logo</p>
                 <div className="w-48 h-48 bg-white rounded-[2rem] shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden mb-8 p-4">
                   <img src={customLogoUrl} alt="Brand Logo" className="max-w-full max-h-full object-contain" />
                 </div>
@@ -415,9 +417,7 @@ const AdminPortal: React.FC = () => {
                     onClick={() => logoInputRef.current?.click()}
                     className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
+                    <UploadCloud className="h-4 w-4" strokeWidth={2.5} />
                     Upload New Logo
                   </button>
                   <input 
@@ -446,9 +446,7 @@ const AdminPortal: React.FC = () => {
               <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                    <ExternalLink className="h-5 w-5 text-pink-600" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 font-serif">Automation (n8n)</h3>
                 </div>
@@ -488,13 +486,11 @@ const AdminPortal: React.FC = () => {
               <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Info className="h-5 w-5 text-pink-500" />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-pink-900 mb-1">Logo Specifications</h4>
-                    <p className="text-[11px] text-pink-700/70 leading-relaxed">For the best results on your luxury invoices, use a high-resolution PNG or JPG with a transparent or white background. Square or circular logos work best.</p>
+                    <p className="text-[11px] text-pink-700/70 leading-relaxed">For the best results on your luxury orders, use a high-resolution PNG or JPG with a transparent or white background. Square or circular logos work best.</p>
                   </div>
                 </div>
               </div>
@@ -530,20 +526,20 @@ const AdminPortal: React.FC = () => {
                     ) : (
                       <p className="font-black text-xs text-pink-600 uppercase tracking-widest mb-4 bg-pink-50 px-4 py-2 rounded-full">Price Pending</p>
                     )}
-                    <div className="flex flex-col items-end gap-2">
-                      <button 
-                        onClick={() => navigate(`/invoice/${order.id}`)}
-                        className="text-[10px] font-black text-pink-600 hover:text-pink-800 uppercase tracking-[0.3em] transition-all"
-                      >
-                        View Invoice
-                      </button>
-                      <button 
-                        onClick={() => handleCancelOrder(order.id)} 
-                        className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
-                      >
-                        Delete Order
-                      </button>
-                    </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <button 
+                          onClick={() => navigate(`/order/${order.id}`)}
+                          className="text-[10px] font-black text-pink-600 hover:text-pink-800 uppercase tracking-[0.3em] transition-all"
+                        >
+                          View Order
+                        </button>
+                        <button 
+                          onClick={() => handleCancelOrder(order.id)} 
+                          className="text-[10px] font-black text-red-300 hover:text-red-600 uppercase tracking-[0.3em] transition-all"
+                        >
+                          Delete Order
+                        </button>
+                      </div>
                   </div>
                 </div>
 
@@ -571,9 +567,7 @@ const AdminPortal: React.FC = () => {
                           rel="noopener noreferrer"
                           className="text-xs font-bold text-pink-600 hover:underline flex items-center gap-2 truncate"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
+                          <MapPin className="h-3.5 w-3.5" strokeWidth={2.5} />
                           View Instagram Design
                         </a>
                       </div>
@@ -639,11 +633,11 @@ const AdminPortal: React.FC = () => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ 
                                   ...orderData, 
-                                  type: 'SEND_INVOICE', 
+                                  type: 'SEND_ORDER', 
                                   appUrl: window.location.origin 
                                 })
                               });
-                              setLastAction('Invoice email triggered');
+                              setLastAction('Order email triggered');
                               setTimeout(() => setLastAction(null), 3000);
                             } catch (err) {
                               console.error(err);
@@ -656,7 +650,7 @@ const AdminPortal: React.FC = () => {
                         }}
                         className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300"
                       >
-                        Send Invoice to Client
+                        Send Order to Client
                       </button>
                     </div>
                   </div>
@@ -679,9 +673,7 @@ const AdminPortal: React.FC = () => {
           {orders.length === 0 && (
             <div className="text-center py-40 bg-white rounded-[4rem] border-2 border-dashed border-slate-200 px-6">
                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
+                  <ClipboardList className="h-12 w-12 text-slate-200" strokeWidth={1} />
                </div>
                <p className="text-slate-800 font-bold text-2xl font-serif">No Active Orders</p>
                <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto font-medium">When customers place orders via the storefront, they will appear here in real-time.</p>

@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Printer, ChevronLeft } from 'lucide-react';
 import { getOrders, getLogoUrl } from '../utils/storage';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
 
-const InvoiceView: React.FC = () => {
+const OrderView: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
@@ -28,12 +29,12 @@ const InvoiceView: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <h2 className="text-2xl font-light text-luxury-ink font-serif">Invoice Not Found</h2>
+          <h2 className="text-2xl font-light text-luxury-ink font-serif">Order Not Found</h2>
           <button 
             onClick={() => navigate('/')}
             className="mt-4 text-luxury-accent font-light small-caps hover:underline"
           >
-            Return to Store
+            Return to Boutique
           </button>
         </div>
       </div>
@@ -41,7 +42,7 @@ const InvoiceView: React.FC = () => {
   }
 
   const date = new Date(order.createdAt);
-  const invoiceNumber = `INV-${order.id.toUpperCase().slice(0, 6)}`;
+  const orderNumber = `ORD-${order.id.toUpperCase().slice(0, 6)}`;
   const issueDate = date.toLocaleDateString();
   const dueDate = new Date(order.deliveryDate).toLocaleDateString();
 
@@ -78,10 +79,10 @@ const InvoiceView: React.FC = () => {
           
           <div className="flex flex-col justify-between items-end text-right h-full">
             <div className="relative mb-12">
-              <h2 className="text-9xl font-black text-slate-50 uppercase tracking-tighter select-none absolute -top-14 -right-6 z-0 opacity-40 print:opacity-10">Invoice</h2>
+              <h2 className="text-9xl font-black text-slate-50 uppercase tracking-tighter select-none absolute -top-14 -right-6 z-0 opacity-40 print:opacity-10">Order</h2>
               <div className="relative z-10">
-                <p className="small-caps text-luxury-muted mb-2 tracking-widest text-[10px]">Invoice Number</p>
-                <p className="text-3xl font-light text-luxury-ink font-serif">{invoiceNumber}</p>
+                <p className="small-caps text-luxury-muted mb-2 tracking-widest text-[10px]">Order Number</p>
+                <p className="text-3xl font-light text-luxury-ink font-serif">{orderNumber}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-12">
@@ -155,36 +156,62 @@ const InvoiceView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              <tr>
-                <td className="py-12 px-6">
-                  <p className="text-2xl font-light text-luxury-ink font-serif mb-4">{order.size} Bespoke Cake</p>
-                  <div className="space-y-4 pl-4 border-l-2 border-luxury-accent/10">
-                    <div>
-                      <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Flavors & Fillings</p>
-                      <p className="text-xs text-luxury-muted leading-relaxed max-w-md font-light">{order.flavor || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Custom Message</p>
-                      <p className="text-xs text-luxury-muted italic leading-relaxed max-w-md font-light">"{order.messageOnCake || 'No message requested'}"</p>
-                    </div>
-                    {order.inspirationImage && (
-                      <div className="pt-4">
-                        <p className="small-caps text-[9px] text-luxury-muted mb-3 tracking-widest">Inspiration Image</p>
-                        <div className="rounded-none overflow-hidden border border-slate-100 max-w-[240px] shadow-sm">
-                          <img src={order.inspirationImage} alt="Inspiration" className="w-full h-auto" referrerPolicy="no-referrer" />
-                        </div>
+              {order.category === 'Cake' ? (
+                <tr>
+                  <td className="py-12 px-6">
+                    <p className="text-2xl font-light text-luxury-ink font-serif mb-4">{order.size} Bespoke Cake</p>
+                    <div className="space-y-4 pl-4 border-l-2 border-luxury-accent/10">
+                      <div>
+                        <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Flavors & Fillings</p>
+                        <p className="text-xs text-luxury-muted leading-relaxed max-w-md font-light">{order.flavor || 'Not specified'}</p>
                       </div>
-                    )}
-                  </div>
-                </td>
-                <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
-                  {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
-                </td>
-                <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
-                <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
-                  {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
-                </td>
-              </tr>
+                      <div>
+                        <p className="small-caps text-[9px] text-luxury-muted tracking-widest mb-1">Custom Message</p>
+                        <p className="text-xs text-luxury-muted italic leading-relaxed max-w-md font-light">"{order.messageOnCake || 'No message requested'}"</p>
+                      </div>
+                      {order.inspirationImage && (
+                        <div className="pt-4">
+                          <p className="small-caps text-[9px] text-luxury-muted mb-3 tracking-widest">Inspiration Image</p>
+                          <div className="rounded-none overflow-hidden border border-slate-100 max-w-[240px] shadow-sm">
+                            <img src={order.inspirationImage} alt="Inspiration" className="w-full h-auto" referrerPolicy="no-referrer" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
+                    {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                  </td>
+                  <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
+                  <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
+                    {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {order.pastries?.map((pastry, idx) => (
+                    <tr key={pastry.id}>
+                      <td className="py-12 px-6">
+                        <p className="text-2xl font-light text-luxury-ink font-serif mb-2">{pastry.name}</p>
+                        <p className="text-xs text-luxury-muted font-light opacity-70 italic">Selection from our bespoke pastry collection</p>
+                      </td>
+                      <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
+                        {/* We don't have individual prices for pastries yet, so we'll show TBD or calculate if we add them later */}
+                        TBD
+                      </td>
+                      <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">{pastry.quantity}</td>
+                      <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
+                        {idx === 0 && order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'TBD'}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!order.pastries || order.pastries.length === 0) && (
+                    <tr>
+                      <td colSpan={4} className="py-12 px-6 text-center text-luxury-muted italic">No items selected</td>
+                    </tr>
+                  )}
+                </>
+              )}
               {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                 <tr>
                   <td className="py-10 px-6">
@@ -208,7 +235,7 @@ const InvoiceView: React.FC = () => {
               <ul className="text-[10px] text-luxury-muted space-y-4 leading-relaxed font-light">
                 <li className="flex gap-4">
                   <span className="text-luxury-accent font-bold opacity-50">01</span>
-                  <span>A 50% non refundable deposit is require to confirm all custom cake orders.</span>
+                  <span>A 50% non refundable deposit is require to confirm all bespoke orders.</span>
                 </li>
                 <li className="flex gap-4">
                   <span className="text-luxury-accent font-bold opacity-50">02</span>
@@ -290,10 +317,8 @@ const InvoiceView: React.FC = () => {
               onClick={() => window.print()}
               className="px-12 py-5 bg-luxury-ink text-white rounded-none small-caps hover:bg-luxury-accent transition-all shadow-xl active:scale-95 flex items-center gap-4 tracking-widest font-semibold"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print Invoice
+              <Printer className="h-5 w-5" strokeWidth={1.5} />
+              Print Order
             </button>
             <button 
               onClick={() => navigate(-1)}
@@ -308,4 +333,4 @@ const InvoiceView: React.FC = () => {
   );
 };
 
-export default InvoiceView;
+export default OrderView;

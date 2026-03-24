@@ -3,20 +3,24 @@ export type OrderStatus = 'Pending' | 'Baking' | 'Ready' | 'Completed' | 'Cancel
 
 export type FulfillmentType = 'Collection' | 'Delivery';
 
+export type OrderCategory = 'Cake' | 'Pastries';
+
 export interface Order {
   id: string;
   customerName: string;
   email: string;
   phone: string;
   fulfillmentType: FulfillmentType;
+  category: OrderCategory;
+  pastries?: { id: string, name: string, quantity: number }[];
   postcode?: string;
   address?: string;
   deliveryFee?: number;
   deliveryDate: string;
   deliveryTimeSlot: string;
-  flavor: string;
-  size: string;
-  messageOnCake: string;
+  flavor?: string;
+  size?: string;
+  messageOnCake?: string;
   inspirationImage?: string; // Base64
   inspirationLink?: string;
   totalPrice?: number;
@@ -41,9 +45,9 @@ export interface Zone {
   locale: string;
 }
 
-export interface Invoice {
+export interface OrderInvoice {
   orderId: string;
-  invoiceNumber: string;
+  orderNumber: string;
   issueDate: string;
   dueDate: string;
 }

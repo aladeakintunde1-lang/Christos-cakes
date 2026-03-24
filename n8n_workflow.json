@@ -22,12 +22,12 @@
           "string": [
             {
               "value1": "={{ $json.type }}",
-              "value2": "SEND_INVOICE"
+              "value2": "SEND_ORDER"
             }
           ]
         }
       },
-      "name": "Is Invoice Request?",
+      "name": "Is Order Request?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
@@ -53,9 +53,9 @@
       "parameters": {
         "from": "whatsapp:+14155238886",
         "to": "=whatsapp:{{ $json.phone }}",
-        "message": "🧾 *Your Christos Cakes Invoice is Ready!*\n\nHi {{ $json.customerName }},\n\nThe baker has reviewed your bespoke cake order and your invoice is now ready.\n\n*Total Amount:* £{{ $json.totalPrice }}\n\n*View & Pay Invoice:* {{ $json.appUrl }}#/invoice/{{ $json.id }}\n\nThank you for choosing Christos Cakes!"
+        "message": "🧾 *Your Christos Cakes Order is Ready!*\n\nHi {{ $json.customerName }},\n\nThe baker has reviewed your bespoke cake order and your order details are now ready.\n\n*Total Amount:* £{{ $json.totalPrice }}\n\n*View & Pay Order:* {{ $json.appUrl }}#/order/{{ $json.id }}\n\nThank you for choosing Christos Cakes!"
       },
-      "name": "Send Client Invoice (WhatsApp)",
+      "name": "Send Client Order (WhatsApp)",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
@@ -81,18 +81,18 @@
       "main": [
         [
           {
-            "node": "Is Invoice Request?",
+            "node": "Is Order Request?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Is Invoice Request?": {
+    "Is Order Request?": {
       "main": [
         [
           {
-            "node": "Send Client Invoice (WhatsApp)",
+            "node": "Send Client Order (WhatsApp)",
             "type": "main",
             "index": 0
           }
@@ -106,7 +106,7 @@
         ]
       ]
     },
-    "Send Client Invoice (WhatsApp)": {
+    "Send Client Order (WhatsApp)": {
       "main": [
         [
           {

@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS orders (
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
   fulfillmentType TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Cake',
+  pastries JSONB DEFAULT '[]'::jsonb,
   postcode TEXT,
   address TEXT,
   deliveryFee NUMERIC NOT NULL DEFAULT 0,

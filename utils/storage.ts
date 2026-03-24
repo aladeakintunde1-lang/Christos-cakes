@@ -17,7 +17,6 @@ export const syncWithSupabase = async () => {
         localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
       } catch (lsError) {
         console.warn('LocalStorage full, orders synced in memory only', lsError);
-        // We still have the orders in the 'orders' variable, but we can't persist them all to LS
       }
       return orders;
     }
