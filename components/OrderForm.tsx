@@ -22,9 +22,9 @@ import {
   ChevronDown,
   Smartphone
 } from 'lucide-react';
-import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, PASTRIES } from '../constants';
+import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, PASTRIES as DEFAULT_PASTRIES } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
-import { saveOrder } from '../utils/storage';
+import { saveOrder, getStoredPastries } from '../utils/storage';
 import { Order, FulfillmentType, OrderCategory } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
@@ -40,6 +40,7 @@ const OrderForm: React.FC = () => {
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [pastries, setPastries] = useState(getStoredPastries() || DEFAULT_PASTRIES);
   const [order, setOrder] = useState<Partial<Order>>({
     fulfillmentType: 'Collection',
     category: 'Cake',
@@ -64,7 +65,7 @@ const OrderForm: React.FC = () => {
   const calculatePastryTotal = () => {
     if (order.category !== 'Pastries' || !order.pastries) return 0;
     return order.pastries.reduce((total, p) => {
-      const pastryDef = PASTRIES.find(pd => pd.id === p.id);
+      const pastryDef = pastries.find((pd: any) => pd.id === p.id);
       return total + ((pastryDef as any)?.price || 0) * p.quantity;
     }, 0);
   };
@@ -582,7 +583,7 @@ const OrderForm: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {PASTRIES.map(pastry => {
+              {pastries.map((pastry: any) => {
                 const selected = order.pastries?.find(p => p.id === pastry.id);
                 const quantity = selected?.quantity || 0;
                 

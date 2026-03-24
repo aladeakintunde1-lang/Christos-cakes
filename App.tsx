@@ -7,7 +7,8 @@ import AdminPortal from './components/AdminPortal';
 import OrderForm from './components/OrderForm';
 import OrderView from './components/OrderView';
 import { UserRole } from './types';
-import { syncWithSupabase } from './utils/storage';
+import { syncWithSupabase, seedPastries } from './utils/storage';
+import { PASTRIES } from './constants';
 
 const Navigation = ({ role, setRole }: { role: UserRole, setRole: (r: UserRole) => void }) => {
   const navigate = useNavigate();
@@ -34,7 +35,11 @@ const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.CUSTOMER);
 
   useEffect(() => {
-    syncWithSupabase();
+    const init = async () => {
+      await seedPastries(PASTRIES);
+      await syncWithSupabase();
+    };
+    init();
   }, []);
 
   return (

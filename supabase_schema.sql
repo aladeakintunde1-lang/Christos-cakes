@@ -41,10 +41,20 @@ CREATE TABLE IF NOT EXISTS settings (
   CONSTRAINT single_row CHECK (id = 1)
 );
 
+-- Pastries Table
+CREATE TABLE IF NOT EXISTS pastries (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  price NUMERIC NOT NULL DEFAULT 0,
+  "order" INTEGER NOT NULL DEFAULT 0
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pastries ENABLE ROW LEVEL SECURITY;
 
 -- Policies for 'orders'
 CREATE POLICY "Enable insert for everyone" ON orders FOR INSERT WITH CHECK (true);
@@ -61,3 +71,9 @@ CREATE POLICY "Enable delete for everyone" ON gallery FOR DELETE USING (true);
 CREATE POLICY "Enable read for everyone" ON settings FOR SELECT USING (true);
 CREATE POLICY "Enable update for everyone" ON settings FOR UPDATE USING (true);
 CREATE POLICY "Enable insert for everyone" ON settings FOR INSERT WITH CHECK (true);
+
+-- Policies for 'pastries'
+CREATE POLICY "Enable read for everyone" ON pastries FOR SELECT USING (true);
+CREATE POLICY "Enable insert for everyone" ON pastries FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for everyone" ON pastries FOR UPDATE USING (true);
+CREATE POLICY "Enable delete for everyone" ON pastries FOR DELETE USING (true);

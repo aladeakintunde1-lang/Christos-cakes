@@ -5,9 +5,21 @@ import { supabase } from './supabase';
 const ORDERS_KEY = 'sweettrack_orders';
 const GALLERY_KEY = 'sweettrack_gallery';
 const SETTINGS_KEY = 'sweettrack_settings';
+const PASTRIES_KEY = 'sweettrack_pastries';
 
 // Helper to sync local storage with Supabase
 export const syncWithSupabase = async () => {
+  // Sync Pastries
+  try {
+    const { data: pastries, error } = await supabase.from('pastries').select('*').order('order', { ascending: true });
+    if (error) throw error;
+    if (pastries && pastries.length > 0) {
+      localStorage.setItem(PASTRIES_KEY, JSON.stringify(pastries));
+    }
+  } catch (error) {
+    console.error('Failed to sync pastries:', error);
+  }
+
   // Sync Orders
   try {
     const { data: orders, error } = await supabase.from('orders').select('*');
@@ -192,5 +204,27 @@ export const saveLogoUrl = async (url: string) => {
     await supabase.from('settings').upsert({ id: 1, logoUrl: url });
   } catch (error) {
     console.error('Supabase saveLogoUrl error:', error);
+  }
+};
+
+// Pastry Methods
+export const getStoredPastries = () => {
+  const data = localStorage.getItem(PASTRIES_KEY);
+  return data ? JSON.parse(data) : null;
+};
+
+export const seedPastries = async (pastries: any[]) => {
+  try {
+    // Check if pastries already exist
+    const { data: existing } = await supabase.from('pastries').select('id');
+    if (!existing || existing.length === 0) {
+      const { error } = await supabase.from('pastries').insert(
+        pastries.map((p, index) => ({ ...p, order: index }))
+      );
+      if (error) throw error;
+      console.log('Pastries seeded to Supabase');
+    }
+  } catch (error) {
+    console.error('Failed to seed pastries:', error);
   }
 };

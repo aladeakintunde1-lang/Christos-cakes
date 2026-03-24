@@ -29,7 +29,7 @@ export const PASTRIES = [
   { id: 'puffpuff', name: 'Puffpuff (Pack of 50)', description: 'Traditional sweet fried dough balls - £25 per pack', price: 25 },
   { id: 'meatpie-large', name: 'Meat Pie (Large) - Pack of 20', description: 'Savory pastry filled with seasoned minced meat - £50 per pack', price: 50 },
   { id: 'meatpie-small', name: 'Meat Pie (Small) - Pack of 30', description: 'Savory pastry filled with seasoned minced meat - £50 per pack', price: 50 },
-  { id: 'sausageroll', name: 'Sausage Roll', description: 'Flaky pastry wrapped around seasoned sausage meat', price: 0 },
+  { id: 'sausageroll', name: 'Sausage Roll - Pack of 30', description: 'Flaky pastry wrapped around seasoned sausage meat - £50 per pack', price: 50 },
   { id: 'fishroll', name: 'Fish Roll', description: 'Crispy pastry filled with spiced fish', price: 0 },
   { id: 'smallchops', name: 'Small Chops', description: 'Assorted finger foods', price: 0 },
   { id: 'platter', name: 'Platter', description: 'A luxury assortment of our finest pastries', price: 0 },
