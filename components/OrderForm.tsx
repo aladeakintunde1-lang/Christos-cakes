@@ -59,6 +59,8 @@ const OrderForm: React.FC = () => {
     deliveryDate: '',
     deliveryTimeSlot: '',
     messageOnCake: '',
+    numberOfTiers: 1,
+    tierArrangement: '',
     inspirationLink: '',
   });
 
@@ -574,6 +576,39 @@ const OrderForm: React.FC = () => {
                 </div>
               </div>
 
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Number of Tiers</label>
+                  <div className="flex items-center gap-6">
+                    {[1, 2, 3, 4].map(t => (
+                      <button 
+                        key={t}
+                        onClick={() => setOrder(prev => ({ ...prev, numberOfTiers: t }))}
+                        className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all font-bold ${order.numberOfTiers === t ? 'border-pink-500 bg-pink-50 text-pink-600 shadow-lg' : 'border-slate-100 bg-white/40 text-slate-400 hover:border-pink-200'}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {order.numberOfTiers && order.numberOfTiers > 1 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="overflow-hidden"
+                  >
+                    <label className="block text-[10px] font-bold text-slate-400 mb-4 uppercase tracking-[0.4em]">Tier Arrangement Details</label>
+                    <textarea 
+                      placeholder="e.g. 3 tiers: base 10&quot;, middle 8&quot;, top 6&quot;"
+                      className="w-full p-6 bg-white/40 rounded-2xl border-2 border-slate-100 focus:border-pink-300 focus:bg-white outline-none transition-all h-24 text-sm font-medium leading-relaxed"
+                      value={order.tierArrangement || ''}
+                      onChange={e => setOrder(prev => ({ ...prev, tierArrangement: e.target.value }))}
+                    />
+                  </motion.div>
+                )}
+              </div>
+
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">Calligraphy / Message</label>
@@ -749,6 +784,20 @@ const OrderForm: React.FC = () => {
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Size</span>
                         <span className="text-sm font-bold text-pink-900">{order.size}</span>
                       </div>
+                      {order.numberOfTiers && order.numberOfTiers > 1 && (
+                        <>
+                          <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Tiers</span>
+                            <span className="text-sm font-bold text-pink-900">{order.numberOfTiers} Tiers</span>
+                          </div>
+                          {order.tierArrangement && (
+                            <div className="flex justify-between items-center py-4 border-b border-pink-50">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Arrangement</span>
+                              <span className="text-sm font-bold text-pink-900 text-right max-w-[200px] truncate">{order.tierArrangement}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
                       <div className="flex justify-between items-center py-4 border-b border-pink-50">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</span>
                         <span className="text-sm font-bold text-pink-900 italic">"{order.messageOnCake || 'None'}"</span>

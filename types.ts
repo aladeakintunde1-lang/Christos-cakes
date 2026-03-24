@@ -21,6 +21,8 @@ export interface Order {
   flavor?: string;
   size?: string;
   messageOnCake?: string;
+  numberOfTiers?: number;
+  tierArrangement?: string;
   inspirationImage?: string; // Base64
   inspirationLink?: string;
   totalPrice?: number;
