@@ -297,11 +297,12 @@ const OrderForm: React.FC = () => {
           <ChevronLeft className="h-6 w-6" strokeWidth={2} />
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 3</span>
+          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 4</span>
           <div className="flex gap-3">
             <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 1 ? 'bg-pink-600' : 'bg-pink-100'}`} />
             <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 2 ? 'bg-pink-600' : 'bg-pink-100'}`} />
             <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 3 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 4 ? 'bg-pink-600' : 'bg-pink-100'}`} />
           </div>
         </div>
         <button onClick={() => navigate('/')} className="text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all">
@@ -314,9 +315,12 @@ const OrderForm: React.FC = () => {
           <h2 className="text-5xl font-serif text-pink-950 mb-3">Order Type</h2>
           <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">What would you like to order today?</p>
           
-          <div className="grid grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
             <button 
-              onClick={() => setOrder(prev => ({ ...prev, category: 'Cake' }))}
+              onClick={() => {
+                setOrder(prev => ({ ...prev, category: 'Cake' }));
+                setStep(2);
+              }}
               className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Cake' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
               <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Cake' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
@@ -325,7 +329,10 @@ const OrderForm: React.FC = () => {
               <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Cake</div>
             </button>
             <button 
-              onClick={() => setOrder(prev => ({ ...prev, category: 'Pastries' }))}
+              onClick={() => {
+                setOrder(prev => ({ ...prev, category: 'Pastries' }));
+                setStep(2);
+              }}
               className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Pastries' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
             >
               <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Pastries' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
@@ -334,9 +341,20 @@ const OrderForm: React.FC = () => {
               <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Pastries</div>
             </button>
           </div>
+        </div>
+      )}
 
-          <h2 className="text-5xl font-serif text-pink-950 mb-3">Logistics</h2>
-          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Select your preferred fulfillment method.</p>
+      {step === 2 && (
+        <div className="animate-fadeIn">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => setStep(1)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-5xl font-serif text-pink-950 mb-3">Logistics</h2>
+              <p className="text-sm text-slate-400 font-medium tracking-wide">Select your preferred fulfillment method.</p>
+            </div>
+          </div>
           
           <div className="grid grid-cols-2 gap-8 mb-12">
             <button 
@@ -443,7 +461,7 @@ const OrderForm: React.FC = () => {
             whileHover={{ scale: 1.01, y: -2 }}
             whileTap={{ scale: 0.99 }}
             disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid() || distanceLoading}
-            onClick={() => setStep(2)}
+            onClick={() => setStep(3)}
             className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] disabled:opacity-30 transition-all shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
           >
             {order.category === 'Cake' ? 'Continue to Design' : 'Continue to Selection'}
@@ -451,14 +469,21 @@ const OrderForm: React.FC = () => {
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="animate-fadeIn">
-          <h2 className="text-5xl font-serif text-pink-950 mb-3">
-            {order.category === 'Cake' ? 'Artistry' : 'Pastries'}
-          </h2>
-          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">
-            {order.category === 'Cake' ? 'Define the aesthetic of your masterpiece.' : 'Select the pastries you\'d like to include in your order.'}
-          </p>
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => setStep(2)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-5xl font-serif text-pink-950 mb-3">
+                {order.category === 'Cake' ? 'Artistry' : 'Pastries'}
+              </h2>
+              <p className="text-sm text-slate-400 font-medium tracking-wide">
+                {order.category === 'Cake' ? 'Define the aesthetic of your masterpiece.' : 'Select the pastries you\'d like to include in your order.'}
+              </p>
+            </div>
+          </div>
           
           {order.category === 'Cake' ? (
             <div className="space-y-12">
@@ -653,7 +678,7 @@ const OrderForm: React.FC = () => {
             whileHover={{ scale: 1.01, y: -2 }}
             whileTap={{ scale: 0.99 }}
             disabled={order.category === 'Pastries' && (!order.pastries || order.pastries.length === 0)}
-            onClick={() => setStep(3)}
+            onClick={() => setStep(4)}
             className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20 disabled:opacity-30 transition-all"
           >
             Review Summary
@@ -661,10 +686,17 @@ const OrderForm: React.FC = () => {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="animate-fadeIn">
-          <h2 className="text-5xl font-serif text-pink-950 mb-3">Review</h2>
-          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">Confirm your bespoke specifications.</p>
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => setStep(3)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-5xl font-serif text-pink-950 mb-3">Review</h2>
+              <p className="text-sm text-slate-400 font-medium tracking-wide">Confirm your bespoke specifications.</p>
+            </div>
+          </div>
           
           <div className="space-y-12">
             <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
