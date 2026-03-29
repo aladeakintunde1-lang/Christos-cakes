@@ -244,3 +244,20 @@ export const seedPastries = async (pastries: any[]) => {
     console.error('Failed to seed pastries:', error);
   }
 };
+
+export const wipeDummyData = async () => {
+  try {
+    // Delete from Supabase
+    await supabase.from('orders').delete().eq('dummy_data', true);
+    await supabase.from('gallery').delete().eq('dummy_data', true);
+    await supabase.from('pastries').delete().eq('dummy_data', true);
+    await supabase.from('settings').update({ dummy_data: false }).eq('id', 1);
+
+    // Re-sync with Supabase to update local storage
+    await syncWithSupabase();
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to wipe dummy data:', error);
+    return { success: false, error };
+  }
+};

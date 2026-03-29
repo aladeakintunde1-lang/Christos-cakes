@@ -25,7 +25,8 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getSettings,
-  saveSettings
+  saveSettings,
+  wipeDummyData
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
@@ -46,6 +47,7 @@ const AdminPortal: React.FC = () => {
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
   const [adminWhatsAppNumber, setAdminWhatsAppNumber] = useState<string>('');
   const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(localStorage.getItem('sweettrack_webhook_url') || '');
+  const [isWiping, setIsWiping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -178,6 +180,22 @@ const AdminPortal: React.FC = () => {
       setGalleryImages(prev => prev.filter(img => img.id !== id));
       setLastAction('Photo deleted');
       setTimeout(() => setLastAction(null), 2000);
+    }
+  };
+
+  const handleWipeData = async () => {
+    const confirmation = prompt('Type CONFIRM to permanently wipe all demo data from your studio:');
+    if (confirmation === 'CONFIRM') {
+      setIsWiping(true);
+      const result = await wipeDummyData();
+      setIsWiping(false);
+      if (result.success) {
+        setLastAction('Demo data wiped successfully');
+        setTimeout(() => setLastAction(null), 3000);
+        refreshData();
+      } else {
+        alert('Failed to wipe demo data. Check console for details.');
+      }
     }
   };
 
@@ -496,10 +514,29 @@ const AdminPortal: React.FC = () => {
                   <div className="p-6 bg-white rounded-2xl border border-slate-100">
                     <p className="text-[11px] text-slate-500 leading-relaxed">
                       This URL connects your studio to n8n for automated order notifications and client emails. 
-                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n_workflow.json</code> in the project root.
+                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n/workflow.json</code> in the project root.
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="p-10 bg-rose-50 rounded-[2.5rem] border border-rose-100">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
+                    <Trash2 className="h-5 w-5 text-rose-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-rose-900 font-serif">Data Management</h3>
+                </div>
+                <p className="text-xs text-rose-700/70 mb-8 leading-relaxed">
+                  Permanently remove all sample data (orders, gallery photos, pastries) to prepare your studio for real customers. This action cannot be undone.
+                </p>
+                <button 
+                  onClick={handleWipeData}
+                  disabled={isWiping}
+                  className="w-full bg-rose-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                >
+                  {isWiping ? 'WIPING DATA...' : 'WIPE DEMO DATA'}
+                </button>
               </div>
 
               <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">
