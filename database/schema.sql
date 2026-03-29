@@ -48,6 +48,25 @@ CREATE TABLE IF NOT EXISTS settings (
   CONSTRAINT single_row CHECK (id = 1)
 );
 
+-- Admin Users Table
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'admin',
+  dummy_data BOOLEAN DEFAULT false
+);
+
+-- Helper function to check if a user is an admin
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN (
+    SELECT EXISTS (
+      SELECT 1 FROM admin_users WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Pastries Table
 CREATE TABLE IF NOT EXISTS pastries (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -62,29 +81,38 @@ CREATE TABLE IF NOT EXISTS pastries (
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pastries ENABLE ROW LEVEL SECURITY;
 
+-- Policies for 'admin_users'
+DROP POLICY IF EXISTS "Admins can read their own role" ON admin_users;
+CREATE POLICY "Admins can read their own role" ON admin_users FOR SELECT USING (auth.uid() = id);
+
 -- Policies for 'orders'
+DROP POLICY IF EXISTS "Enable insert for everyone" ON orders;
+DROP POLICY IF EXISTS "Enable read for everyone" ON orders;
+DROP POLICY IF EXISTS "Admins can manage orders" ON orders;
 CREATE POLICY "Enable insert for everyone" ON orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable read for everyone" ON orders FOR SELECT USING (true);
-CREATE POLICY "Enable update for everyone" ON orders FOR UPDATE USING (true);
-CREATE POLICY "Enable delete for everyone" ON orders FOR DELETE USING (true);
+CREATE POLICY "Admins can manage orders" ON orders FOR ALL USING (is_admin());
 
 -- Policies for 'gallery'
+DROP POLICY IF EXISTS "Enable read for everyone" ON gallery;
+DROP POLICY IF EXISTS "Admins can manage gallery" ON gallery;
 CREATE POLICY "Enable read for everyone" ON gallery FOR SELECT USING (true);
-CREATE POLICY "Enable insert for everyone" ON gallery FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable delete for everyone" ON gallery FOR DELETE USING (true);
+CREATE POLICY "Admins can manage gallery" ON gallery FOR ALL USING (is_admin());
 
 -- Policies for 'settings'
+DROP POLICY IF EXISTS "Enable read for everyone" ON settings;
+DROP POLICY IF EXISTS "Admins can manage settings" ON settings;
 CREATE POLICY "Enable read for everyone" ON settings FOR SELECT USING (true);
-CREATE POLICY "Enable update for everyone" ON settings FOR UPDATE USING (true);
-CREATE POLICY "Enable insert for everyone" ON settings FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admins can manage settings" ON settings FOR ALL USING (is_admin());
 
 -- Policies for 'pastries'
+DROP POLICY IF EXISTS "Enable read for everyone" ON pastries;
+DROP POLICY IF EXISTS "Admins can manage pastries" ON pastries;
 CREATE POLICY "Enable read for everyone" ON pastries FOR SELECT USING (true);
-CREATE POLICY "Enable insert for everyone" ON pastries FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update for everyone" ON pastries FOR UPDATE USING (true);
-CREATE POLICY "Enable delete for everyone" ON pastries FOR DELETE USING (true);
+CREATE POLICY "Admins can manage pastries" ON pastries FOR ALL USING (is_admin());
 
 -- Helper function for updated_at (if needed later)
 -- CREATE OR REPLACE FUNCTION update_updated_at_column()

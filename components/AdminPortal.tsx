@@ -13,7 +13,9 @@ import {
   Info, 
   ClipboardList,
   MapPin,
-  DollarSign
+  DollarSign,
+  LogOut,
+  User
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -28,15 +30,18 @@ import {
   saveSettings,
   wipeDummyData
 } from '../utils/storage';
+import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
-import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
+import { LOGO_URL } from '../constants';
 
 const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [viewMode, setViewMode] = useState<'Orders' | 'Gallery' | 'Insights' | 'Settings'>('Orders');
@@ -52,6 +57,48 @@ const AdminPortal: React.FC = () => {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localWebhookUrl;
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Check if user is actually an admin
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (adminData?.role === 'admin') {
+          setIsAuthenticated(true);
+        } else {
+          await supabase.auth.signOut();
+        }
+      }
+      setIsLoading(false);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (adminData?.role === 'admin') {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -82,13 +129,25 @@ const AdminPortal: React.FC = () => {
     setGalleryImages(getGalleryImages());
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      alert('Wrong password');
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      // Auth state change listener will handle the rest
+    } catch (error: any) {
+      alert(error.message || 'Login failed');
+      setIsLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
   };
 
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
@@ -199,6 +258,14 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -213,22 +280,44 @@ const AdminPortal: React.FC = () => {
             </div>
             <h2 className="text-4xl font-light mb-3 text-pink-950 font-serif tracking-tight">Studio Access</h2>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">Christos Cakes Management</p>
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="relative">
-                <input 
-                  type="password" 
-                  placeholder="Access Key"
-                  className="w-full p-5 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-center font-bold tracking-[0.5em] placeholder:tracking-normal placeholder:font-medium placeholder:text-slate-300"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  autoFocus
-                />
+            <form onSubmit={handleLogin} className="space-y-4 text-left">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Email Address</label>
+                <div className="relative">
+                  <User className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                  <input 
+                    type="email" 
+                    placeholder="admin@christoscakes.com"
+                    className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <button className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase">
-                Enter Studio
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Password</label>
+                <div className="relative">
+                  <LockKeyhole className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                  <input 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase mt-4 disabled:opacity-50"
+              >
+                {isLoading ? 'Verifying...' : 'Enter Studio'}
               </button>
             </form>
-            <p className="mt-8 text-[9px] text-pink-200 uppercase tracking-[0.4em] font-bold">Key: cake</p>
+            <p className="mt-8 text-[9px] text-pink-200 uppercase tracking-[0.4em] font-bold">Secure Admin Portal</p>
           </div>
         </div>
       </div>
@@ -252,34 +341,51 @@ const AdminPortal: React.FC = () => {
       )}
 
       <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-12 gap-8">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
-          <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
+        <div className="flex justify-between items-center w-full xl:w-auto">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
+            <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="xl:hidden p-4 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 transition-all"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
         </div>
-        <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-4 w-full xl:w-auto">
+          <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
+            <button 
+              onClick={() => setViewMode('Orders')}
+              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Orders
+            </button>
+            <button 
+              onClick={() => setViewMode('Gallery')}
+              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Gallery Studio
+            </button>
+            <button 
+              onClick={() => setViewMode('Insights')}
+              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Insights
+            </button>
+            <button 
+              onClick={() => setViewMode('Settings')}
+              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Settings
+            </button>
+          </div>
           <button 
-            onClick={() => setViewMode('Orders')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={handleLogout}
+            className="hidden xl:flex items-center gap-2 px-6 py-3.5 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all font-black text-[10px] uppercase tracking-widest"
           >
-            Orders
-          </button>
-          <button 
-            onClick={() => setViewMode('Gallery')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Gallery Studio
-          </button>
-          <button 
-            onClick={() => setViewMode('Insights')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Insights
-          </button>
-          <button 
-            onClick={() => setViewMode('Settings')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            Settings
+            <LogOut className="h-4 w-4" />
+            Logout
           </button>
         </div>
       </header>

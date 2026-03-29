@@ -11,24 +11,31 @@ A bespoke luxury cake ordering and management platform. The stack includes a Rea
 - **Vercel Account:** For frontend deployment.
 
 ## Step 1 — Supabase Setup
-1. Create a new project in Supabase.
-2. Open the **SQL Editor**.
-3. Run the content of `database/schema.sql`. This creates the tables and sets up RLS.
-4. Run the content of `database/dummy_data.sql` to populate initial data.
+1. **Use your existing Supabase project** or create a new one if you haven't already.
+2. Open the **SQL Editor** in your Supabase dashboard.
+3. Run the content of `database/schema.sql`. This creates the required tables and sets up Row Level Security (RLS).
+4. Run the content of `database/dummy_data.sql` to populate the initial gallery and settings.
 5. **Pre-Migration Setup:** Run this SQL to create the `exec_sql` function required for automated migrations:
    ```sql
    CREATE OR REPLACE FUNCTION exec_sql(sql text)
    RETURNS void LANGUAGE plpgsql SECURITY DEFINER
    AS $$ BEGIN EXECUTE sql; END; $$;
    ```
-6. Copy your **Project URL** and **Service Role Key** from Project Settings > API.
+6. Copy your **Project URL** and **Service Role Key** from **Project Settings > API**.
 
 ## Step 2 — Create Admin Account
-Run this SQL in the Supabase SQL Editor to create your first admin user (replace with your desired password hash):
-```sql
-INSERT INTO admin_users (id, role) 
-VALUES ('YOUR_AUTH_USER_ID', 'admin');
-```
+1. Go to your **Supabase Dashboard**.
+2. Click on **Authentication** (user icon) in the left sidebar.
+3. Click **Add User** > **Create New User**.
+4. Enter an email and password for your admin account.
+5. **Important:** Uncheck "Send invite email" to set the password manually without an email confirmation.
+6. Once created, copy the **User ID** (e.g., `a1b2c3d4...`).
+7. Go to the **SQL Editor** and run this SQL (replace with your copied ID):
+   ```sql
+   INSERT INTO admin_users (id, role) 
+   VALUES ('YOUR_AUTH_USER_ID', 'admin');
+   ```
+8. You can now log into the Admin Portal at `/admin` using this email and password.
 
 ## Step 3 — GitHub Secrets
 In your GitHub repository, go to **Settings > Secrets and variables > Actions** and add:
