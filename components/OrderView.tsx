@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ChevronLeft } from 'lucide-react';
-import { getOrders, getLogoUrl } from '../utils/storage';
+import { getOrders, getSettings } from '../utils/storage';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
 
@@ -13,8 +13,8 @@ const OrderView: React.FC = () => {
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
 
   useEffect(() => {
-    const savedLogo = getLogoUrl();
-    if (savedLogo) setBrandLogo(savedLogo);
+    const settings = getSettings();
+    if (settings?.logoUrl) setBrandLogo(settings.logoUrl);
 
     if (orderId) {
       const orders = getOrders();

@@ -1,5 +1,5 @@
 
-import { Order, GalleryImage } from '../types';
+import { Order, GalleryImage, Settings } from '../types';
 import { supabase } from './supabase';
 
 const ORDERS_KEY = 'sweettrack_orders';
@@ -55,7 +55,9 @@ export const syncWithSupabase = async () => {
   try {
     const { data: settings, error } = await supabase.from('settings').select('*').maybeSingle();
     if (error) throw error;
-    if (settings?.logoUrl) localStorage.setItem(SETTINGS_KEY, settings.logoUrl);
+    if (settings) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
   } catch (error) {
     console.error('Failed to sync settings:', error);
   }
@@ -192,18 +194,32 @@ export const deleteGalleryImage = async (id: string) => {
 };
 
 // Settings Methods
-export const getLogoUrl = (): string | null => {
-  return localStorage.getItem(SETTINGS_KEY);
+export const getSettings = (): Settings | null => {
+  const data = localStorage.getItem(SETTINGS_KEY);
+  if (!data) return null;
+  try {
+    // Check if it's the old string-only format or new JSON format
+    if (data.startsWith('{')) {
+      return JSON.parse(data);
+    } else {
+      // Migrate old format
+      return { logoUrl: data };
+    }
+  } catch (e) {
+    return { logoUrl: data };
+  }
 };
 
-export const saveLogoUrl = async (url: string) => {
-  localStorage.setItem(SETTINGS_KEY, url);
+export const saveSettings = async (settings: Partial<Settings>) => {
+  const current = getSettings() || { logoUrl: '' };
+  const updated = { ...current, ...settings };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
   
   try {
     // Upsert settings (assuming a single record with id 1)
-    await supabase.from('settings').upsert({ id: 1, logoUrl: url });
+    await supabase.from('settings').upsert({ id: 1, ...updated });
   } catch (error) {
-    console.error('Supabase saveLogoUrl error:', error);
+    console.error('Supabase saveSettings error:', error);
   }
 };
 

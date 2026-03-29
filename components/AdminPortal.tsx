@@ -24,8 +24,8 @@ import {
   getGalleryImages, 
   addGalleryImage, 
   deleteGalleryImage,
-  getLogoUrl,
-  saveLogoUrl
+  getSettings,
+  saveSettings
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
@@ -44,6 +44,7 @@ const AdminPortal: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
+  const [adminWhatsAppNumber, setAdminWhatsAppNumber] = useState<string>('');
   const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(localStorage.getItem('sweettrack_webhook_url') || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -53,8 +54,9 @@ const AdminPortal: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       refreshData();
-      const savedLogo = getLogoUrl();
-      if (savedLogo) setCustomLogoUrl(savedLogo);
+      const settings = getSettings();
+      if (settings?.logoUrl) setCustomLogoUrl(settings.logoUrl);
+      if (settings?.adminWhatsAppNumber) setAdminWhatsAppNumber(settings.adminWhatsAppNumber);
     }
   }, [isAuthenticated]);
 
@@ -159,7 +161,7 @@ const AdminPortal: React.FC = () => {
       reader.onloadend = () => {
         const url = reader.result as string;
         setCustomLogoUrl(url);
-        saveLogoUrl(url);
+        saveSettings({ logoUrl: url });
         setLastAction('Brand logo updated!');
         setTimeout(() => setLastAction(null), 3000);
       };
@@ -451,9 +453,26 @@ const AdminPortal: React.FC = () => {
                   <h3 className="text-xl font-bold text-slate-900 font-serif">Automation (n8n)</h3>
                 </div>
                 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Admin WhatsApp Number</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. +447123456789"
+                        className="w-full p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
+                        value={adminWhatsAppNumber}
+                        onChange={e => setAdminWhatsAppNumber(e.target.value)}
+                        onBlur={() => {
+                          saveSettings({ adminWhatsAppNumber });
+                          setLastAction('WhatsApp number saved');
+                          setTimeout(() => setLastAction(null), 3000);
+                        }}
+                      />
+                      <p className="mt-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest">Used for daily order notifications at 8:00 AM</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
                     <div className="flex gap-2">
                       <input 
                         type="text" 

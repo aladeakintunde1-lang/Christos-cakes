@@ -74,6 +74,98 @@
         850,
         300
       ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 8
+            }
+          ]
+        }
+      },
+      "name": "Daily 8AM Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        100,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databaseTable",
+        "operation": "get",
+        "table": "settings",
+        "id": 1
+      },
+      "name": "Get Admin Settings",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        300,
+        650
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CRED_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databaseTable",
+        "operation": "getAll",
+        "table": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "key": "status",
+              "operator": "notEqual",
+              "value": "Cancelled"
+            }
+          ]
+        }
+      },
+      "name": "Get All Orders",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        500,
+        650
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CRED_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = items.map(i => i.json);\nconst now = new Date();\nconst startOfWeek = new Date(now);\nstartOfWeek.setDate(now.getDate() - now.getDay());\nstartOfWeek.setHours(0, 0, 0, 0);\n\nconst endOfWeek = new Date(startOfWeek);\nendOfWeek.setDate(startOfWeek.getDate() + 7);\n\nconst weeklyOrders = orders.filter(o => {\n  const deliveryDate = new Date(o.deliveryDate);\n  return deliveryDate >= startOfWeek && deliveryDate < endOfWeek;\n});\n\nif (weeklyOrders.length === 0) return [];\n\nlet message = \"📅 *Weekly Order Summary*\\n\\n\";\nweeklyOrders.forEach(o => {\n  message += `🎂 *${o.customerName}*\\n📅 ${o.deliveryDate}\\n🍰 ${o.size} - ${o.flavor}\\n📍 ${o.fulfillmentType}\\n---\\n`;\n});\n\nreturn [{ json: { message, adminPhone: $node[\"Get Admin Settings\"].json.adminWhatsAppNumber } }];"
+      },
+      "name": "Format Weekly Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        700,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "=whatsapp:{{ $json.adminPhone }}",
+        "message": "={{ $json.message }}"
+      },
+      "name": "Send Weekly Summary",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        900,
+        650
+      ]
     }
   ],
   "connections": {
@@ -122,6 +214,50 @@
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8AM Check": {
+      "main": [
+        [
+          {
+            "node": "Get Admin Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Admin Settings": {
+      "main": [
+        [
+          {
+            "node": "Get All Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Orders": {
+      "main": [
+        [
+          {
+            "node": "Format Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Summary",
             "type": "main",
             "index": 0
           }
