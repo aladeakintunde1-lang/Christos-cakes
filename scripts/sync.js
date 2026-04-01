@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 
-const N8N_BASE_URL = process.env.N8N_BASE_URL;
+const N8N_BASE_URL = process.env.N8N_BASE_URL?.replace(/\/$/, '');
 const N8N_API_KEY = process.env.N8N_API_KEY;
 const WORKFLOW_PATH = path.join(__dirname, '../n8n/workflow.json');
 
