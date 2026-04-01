@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS orders (
   distance NUMERIC,
   numberOfTiers INTEGER,
   tierArrangement TEXT,
-  createdAt TEXT NOT NULL DEFAULT now()::text,
+  "createdAt" TEXT NOT NULL DEFAULT now()::text,
   dummy_data BOOLEAN DEFAULT false
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS gallery (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   url TEXT NOT NULL,
   displayMode TEXT NOT NULL,
-  createdAt TEXT NOT NULL DEFAULT now()::text,
+  "createdAt" TEXT NOT NULL DEFAULT now()::text,
   dummy_data BOOLEAN DEFAULT false
 );
 

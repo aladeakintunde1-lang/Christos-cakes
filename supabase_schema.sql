@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS orders (
   numberOfTiers INTEGER,
   tierArrangement TEXT,
   deliveryFee NUMERIC NOT NULL DEFAULT 0,
-  createdAt TEXT NOT NULL DEFAULT now()::text,
+  "createdAt" TEXT NOT NULL DEFAULT now()::text,
   dummy_data BOOLEAN DEFAULT false
 );
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS gallery (
   id TEXT PRIMARY KEY,
   url TEXT NOT NULL,
   displayMode TEXT NOT NULL,
-  createdAt TEXT NOT NULL DEFAULT now()::text,
+  "createdAt" TEXT NOT NULL DEFAULT now()::text,
   dummy_data BOOLEAN DEFAULT false
 );
 
