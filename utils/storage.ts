@@ -22,18 +22,21 @@ export const syncWithSupabase = async () => {
 
   // Sync Orders
   try {
-    const { data: orders, error } = await supabase.from('orders').select('*');
-    if (error) throw error;
-    if (orders) {
-      try {
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-      } catch (lsError) {
-        console.warn('LocalStorage full, orders synced in memory only', lsError);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: orders, error } = await supabase.from('orders').select('*');
+      if (error) throw error;
+      if (orders) {
+        try {
+          localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+        } catch (lsError) {
+          console.warn('LocalStorage full, orders synced in memory only', lsError);
+        }
+        return orders;
       }
-      return orders;
     }
   } catch (error) {
-    console.error('Failed to sync orders:', error);
+    console.error('Failed to sync orders (likely not an admin):', error);
   }
 
   // Sync Gallery

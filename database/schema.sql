@@ -93,7 +93,6 @@ DROP POLICY IF EXISTS "Enable insert for everyone" ON orders;
 DROP POLICY IF EXISTS "Enable read for everyone" ON orders;
 DROP POLICY IF EXISTS "Admins can manage orders" ON orders;
 CREATE POLICY "Enable insert for everyone" ON orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable read for everyone" ON orders FOR SELECT USING (true);
 CREATE POLICY "Admins can manage orders" ON orders FOR ALL USING (is_admin());
 
 -- Policies for 'gallery'

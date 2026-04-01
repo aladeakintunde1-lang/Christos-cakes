@@ -37,7 +37,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       await seedPastries(PASTRIES);
-      await syncWithSupabase();
     };
     init();
   }, []);
