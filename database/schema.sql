@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS orders (
   totalPrice NUMERIC NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'Pending',
   distance NUMERIC,
+  numberOfTiers INTEGER,
+  tierArrangement TEXT,
   createdAt TEXT NOT NULL DEFAULT now()::text,
   dummy_data BOOLEAN DEFAULT false
 );
