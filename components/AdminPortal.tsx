@@ -39,8 +39,8 @@ const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
@@ -62,42 +62,11 @@ const AdminPortal: React.FC = () => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Check if user is actually an admin
-        const { data: adminData } = await supabase
-          .from('admin_users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (adminData?.role === 'admin') {
-          setIsAuthenticated(true);
-        } else {
-          await supabase.auth.signOut();
-        }
+        setIsAuthenticated(true);
       }
       setIsLoading(false);
     };
     checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        const { data: adminData } = await supabase
-          .from('admin_users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (adminData?.role === 'admin') {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
-      } else {
-        setIsAuthenticated(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -131,17 +100,14 @@ const AdminPortal: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      // Auth state change listener will handle the rest
-    } catch (error: any) {
-      alert(error.message || 'Login failed');
-      setIsLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailInput,
+      password: passwordInput,
+    });
+    if (error) {
+      alert(error.message);
+    } else {
+      setIsAuthenticated(true);
     }
   };
 
@@ -287,10 +253,10 @@ const AdminPortal: React.FC = () => {
                   <User className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                   <input 
                     type="email" 
-                    placeholder="admin@christoscakes.com"
+                    placeholder="admin@christoscakes.co.uk"
                     className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    value={emailInput}
+                    onChange={e => setEmailInput(e.target.value)}
                     required
                   />
                 </div>
@@ -303,18 +269,17 @@ const AdminPortal: React.FC = () => {
                     type="password" 
                     placeholder="••••••••"
                     className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    value={passwordInput}
+                    onChange={e => setPasswordInput(e.target.value)}
                     required
                   />
                 </div>
               </div>
               <button 
                 type="submit"
-                disabled={isLoading}
-                className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase mt-4 disabled:opacity-50"
+                className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase mt-4"
               >
-                {isLoading ? 'Verifying...' : 'Enter Studio'}
+                Enter Studio
               </button>
             </form>
             <p className="mt-8 text-[9px] text-pink-200 uppercase tracking-[0.4em] font-bold">Secure Admin Portal</p>

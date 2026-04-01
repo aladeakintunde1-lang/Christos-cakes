@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Lock } from 'lucide-react';
 import CustomerPortal from './components/CustomerPortal';
 import AdminPortal from './components/AdminPortal';
 import OrderForm from './components/OrderForm';
@@ -15,6 +15,7 @@ const Navigation = ({ role, setRole }: { role: UserRole, setRole: (r: UserRole) 
   const location = useLocation();
   
   const isStoreActive = location.pathname === '/' || location.pathname === '/order';
+  const isAdminActive = location.pathname === '/admin';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-xl border-t border-white/20 px-8 pt-4 pb-safe flex justify-around items-center z-50 transition-all duration-300 shadow-[0_-10px_40px_rgba(219,39,119,0.05)] md:top-0 md:bottom-auto md:border-t-0 md:border-b md:pb-4">
