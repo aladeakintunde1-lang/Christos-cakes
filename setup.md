@@ -45,9 +45,12 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 - `SUPABASE_SERVICE_KEY`: Your Supabase service role key.
 
 ## Step 4 — First Push to GitHub
-1. Push your code to the `main` branch.
-2. Check the **Actions** tab. Both `Run Database Migrations` and `Sync to n8n` should run.
-3. Find the n8n workflow ID in the `Sync to n8n` action log and add it to `n8n/workflow.json` if it was a new creation.
+1. **Open your terminal** in the root directory of your project.
+2. **Stage your changes:** Run `git add .` to prepare all files for the commit.
+3. **Commit your changes:** Run `git commit -m "Initial build with secure admin portal"` to save your changes locally.
+4. **Push to GitHub:** Run `git push origin main` to upload your code to the remote repository.
+5. Check the **Actions** tab in your GitHub repository. Both `Run Database Migrations` and `Sync to n8n` should run automatically.
+6. Find the n8n workflow ID in the `Sync to n8n` action log and add it to `n8n/workflow.json` if it was a new creation.
 
 ## Step 5 — n8n Setup
 1. Open your n8n instance.
