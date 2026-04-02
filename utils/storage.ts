@@ -1,52 +1,11 @@
 
-import { Order, GalleryImage, Settings } from '../types';
+import { Order, GalleryImage } from '../types';
 import { supabase } from './supabase';
 
 const ORDERS_KEY = 'sweettrack_orders';
 const GALLERY_KEY = 'sweettrack_gallery';
 const SETTINGS_KEY = 'sweettrack_settings';
 const PASTRIES_KEY = 'sweettrack_pastries';
-
-export const getOrders = (): Order[] => {
-  try {
-    const data = localStorage.getItem(ORDERS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Failed to read orders from localStorage:', error);
-    return [];
-  }
-};
-
-export const getGalleryImages = (): GalleryImage[] => {
-  const data = localStorage.getItem(GALLERY_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-export const getSettings = (): Settings | null => {
-  const data = localStorage.getItem(SETTINGS_KEY);
-  if (!data) return null;
-  try {
-    // Check if it's the old string-only format or new JSON format
-    if (data.startsWith('{')) {
-      return JSON.parse(data);
-    } else {
-      // Migrate old format
-      return { logoUrl: data };
-    }
-  } catch (e) {
-    return { logoUrl: data };
-  }
-};
-
-export const getLogoUrl = (): string | null => {
-  const settings = getSettings();
-  return settings?.logoUrl || null;
-};
-
-export const getStoredPastries = () => {
-  const data = localStorage.getItem(PASTRIES_KEY);
-  return data ? JSON.parse(data) : null;
-};
 
 // Helper to sync local storage with Supabase
 export const syncWithSupabase = async () => {
@@ -96,14 +55,22 @@ export const syncWithSupabase = async () => {
   try {
     const { data: settings, error } = await supabase.from('settings').select('*').maybeSingle();
     if (error) throw error;
-    if (settings) {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    }
+    if (settings?.logoUrl) localStorage.setItem(SETTINGS_KEY, settings.logoUrl);
   } catch (error) {
     console.error('Failed to sync settings:', error);
   }
 
   return getOrders();
+};
+
+export const getOrders = (): Order[] => {
+  try {
+    const data = localStorage.getItem(ORDERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Failed to read orders from localStorage:', error);
+    return [];
+  }
 };
 
 export const saveOrder = async (order: Order) => {
@@ -195,6 +162,11 @@ export const deleteOrder = async (orderId: string) => {
 };
 
 // Gallery Methods
+export const getGalleryImages = (): GalleryImage[] => {
+  const data = localStorage.getItem(GALLERY_KEY);
+  return data ? JSON.parse(data) : [];
+};
+
 export const addGalleryImage = async (image: GalleryImage) => {
   const images = getGalleryImages();
   images.unshift(image); // Add to beginning
@@ -219,17 +191,26 @@ export const deleteGalleryImage = async (id: string) => {
   }
 };
 
-export const saveSettings = async (settings: Partial<Settings>) => {
-  const current = getSettings() || { logoUrl: '' };
-  const updated = { ...current, ...settings };
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+// Settings Methods
+export const getLogoUrl = (): string | null => {
+  return localStorage.getItem(SETTINGS_KEY);
+};
+
+export const saveLogoUrl = async (url: string) => {
+  localStorage.setItem(SETTINGS_KEY, url);
   
   try {
     // Upsert settings (assuming a single record with id 1)
-    await supabase.from('settings').upsert({ id: 1, ...updated });
+    await supabase.from('settings').upsert({ id: 1, logoUrl: url });
   } catch (error) {
-    console.error('Supabase saveSettings error:', error);
+    console.error('Supabase saveLogoUrl error:', error);
   }
+};
+
+// Pastry Methods
+export const getStoredPastries = () => {
+  const data = localStorage.getItem(PASTRIES_KEY);
+  return data ? JSON.parse(data) : null;
 };
 
 export const seedPastries = async (pastries: any[]) => {

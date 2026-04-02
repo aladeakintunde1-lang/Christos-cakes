@@ -61,5 +61,4 @@ export enum UserRole {
 
 export interface Settings {
   logoUrl: string;
-  adminWhatsAppNumber?: string;
 }
