@@ -192,6 +192,12 @@ export const deleteGalleryImage = async (id: string) => {
 };
 
 // Settings Methods
+export const getSettings = () => {
+  return {
+    logoUrl: getLogoUrl()
+  };
+};
+
 export const getLogoUrl = (): string | null => {
   try {
     return localStorage.getItem(SETTINGS_KEY);

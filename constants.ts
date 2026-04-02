@@ -21,6 +21,8 @@ export const PICKUP_ADDRESS = '7 Singh street, Wellington, TA21 9RH';
 
 export const INSTAGRAM_URL = 'https://www.instagram.com/Christoscakes_events/';
 
+export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'cake'; // Fallback for local dev only
+
 // Replace this URL with the actual URL of your uploaded logo
 export const LOGO_URL = 'https://picsum.photos/seed/christos-cakes-logo/400/400'; 
 
