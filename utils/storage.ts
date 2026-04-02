@@ -193,11 +193,19 @@ export const deleteGalleryImage = async (id: string) => {
 
 // Settings Methods
 export const getLogoUrl = (): string | null => {
-  return localStorage.getItem(SETTINGS_KEY);
+  try {
+    return localStorage.getItem(SETTINGS_KEY);
+  } catch (e) {
+    return null;
+  }
 };
 
 export const saveLogoUrl = async (url: string) => {
-  localStorage.setItem(SETTINGS_KEY, url);
+  try {
+    localStorage.setItem(SETTINGS_KEY, url);
+  } catch (e) {
+    console.warn('Failed to save logo to localStorage:', e);
+  }
   
   try {
     // Upsert settings (assuming a single record with id 1)

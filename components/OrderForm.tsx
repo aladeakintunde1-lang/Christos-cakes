@@ -120,7 +120,13 @@ const OrderForm: React.FC = () => {
     });
   };
 
-  const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localStorage.getItem('sweettrack_webhook_url');
+  const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || (() => {
+    try {
+      return localStorage.getItem('sweettrack_webhook_url');
+    } catch (e) {
+      return null;
+    }
+  })();
 
   const handlePostcodeChange = async (postcode: string) => {
     const pc = postcode.toUpperCase().trim();

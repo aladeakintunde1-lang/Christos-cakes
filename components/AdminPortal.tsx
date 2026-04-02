@@ -44,7 +44,13 @@ const AdminPortal: React.FC = () => {
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
-  const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(localStorage.getItem('sweettrack_webhook_url') || '');
+  const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem('sweettrack_webhook_url') || '';
+    } catch (e) {
+      return '';
+    }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -215,7 +221,7 @@ const AdminPortal: React.FC = () => {
     );
   }
 
-  const revenue = orders.reduce((sum, o) => sum + o.totalPrice || 0, 0);
+  const revenue = orders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
 
   return (
     <div className="relative max-w-6xl mx-auto pb-32">

@@ -39,7 +39,7 @@
       "parameters": {
         "from": "whatsapp:+14155238886",
         "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
-        "message": "🎂 *New Bespoke Order Received!*\n\n*Customer:* {{ $json.customerName }}\n*Size:* {{ $json.size }}\n*Flavor:* {{ $json.flavor }}\n*Date:* {{ $json.deliveryDate }}\n*Message:* {{ $json.messageOnCake }}\n\nView in Admin Portal: {{ $json.appUrl }}/#/admin"
+        "message": "🎂 *New Bespoke Order Received!*\n\n*Customer:* {{ $json.customerName }}\n*Size:* {{ $json.size }}\n*Flavor:* {{ $json.flavor }}\n*Date:* {{ $json.deliveryDate }}\n*Message:* {{ $json.messageOnCake }}\n\nView in Admin Portal: {{ $json.appUrl }}/admin"
       },
       "name": "Notify Admin (WhatsApp)",
       "type": "n8n-nodes-base.twilio",
@@ -53,7 +53,7 @@
       "parameters": {
         "from": "whatsapp:+14155238886",
         "to": "=whatsapp:{{ $json.phone }}",
-        "message": "🧾 *Your Christos Cakes Order is Ready!*\n\nHi {{ $json.customerName }},\n\nThe baker has reviewed your bespoke cake order and your order details are now ready.\n\n*Total Amount:* £{{ $json.totalPrice }}\n\n*View & Pay Order:* {{ $json.appUrl }}#/order/{{ $json.id }}\n\nThank you for choosing Christos Cakes!"
+        "message": "🧾 *Your Christos Cakes Order is Ready!*\n\nHi {{ $json.customerName }},\n\nThe baker has reviewed your bespoke cake order and your order details are now ready.\n\n*Total Amount:* £{{ $json.totalPrice }}\n\n*View & Pay Order:* {{ $json.appUrl }}/order/{{ $json.id }}\n\nThank you for choosing Christos Cakes!"
       },
       "name": "Send Client Order (WhatsApp)",
       "type": "n8n-nodes-base.twilio",
