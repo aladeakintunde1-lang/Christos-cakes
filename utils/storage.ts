@@ -1,5 +1,5 @@
 
-import { Order, GalleryImage } from '../types';
+import { Order, GalleryImage, Settings } from '../types';
 import { supabase } from './supabase';
 
 const ORDERS_KEY = 'sweettrack_orders';
@@ -208,6 +208,11 @@ export const getSettings = (): Settings | null => {
   } catch (e) {
     return { logoUrl: data };
   }
+};
+
+export const getLogoUrl = (): string | null => {
+  const settings = getSettings();
+  return settings?.logoUrl || null;
 };
 
 export const saveSettings = async (settings: Partial<Settings>) => {

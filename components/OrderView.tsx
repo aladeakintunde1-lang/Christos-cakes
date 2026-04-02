@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, ChevronLeft } from 'lucide-react';
-import { getOrders, getLogoUrl } from '../utils/storage';
+import { Printer, ChevronLeft, Lock } from 'lucide-react';
+import { getOrders, getSettings, syncWithSupabase } from '../utils/storage';
+import { supabase } from '../utils/supabase';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
 
@@ -11,19 +12,98 @@ const OrderView: React.FC = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const savedLogo = getLogoUrl();
-    if (savedLogo) setBrandLogo(savedLogo);
+    const checkAdmin = async () => {
+      // Safety timeout
+      const timeout = setTimeout(() => {
+        if (isAdmin === null) setIsAdmin(false);
+      }, 5000);
 
-    if (orderId) {
-      const orders = getOrders();
-      const foundOrder = orders.find(o => o.id === orderId);
-      if (foundOrder) {
-        setOrder(foundOrder);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setIsAdmin(false);
+          return;
+        }
+        
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        setIsAdmin(adminData?.role === 'admin');
+      } catch (error) {
+        console.error('Admin check failed:', error);
+        setIsAdmin(false);
+      } finally {
+        clearTimeout(timeout);
       }
+    };
+    checkAdmin();
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin === true) {
+      const loadOrder = async () => {
+        const settings = getSettings();
+        if (settings?.logoUrl) setBrandLogo(settings.logoUrl);
+
+        if (orderId) {
+          // Try local first
+          let orders = getOrders();
+          let foundOrder = orders.find(o => o.id === orderId);
+          
+          if (!foundOrder) {
+            // Sync if not found locally
+            orders = await syncWithSupabase() || [];
+            foundOrder = orders.find(o => o.id === orderId);
+          }
+          
+          if (foundOrder) {
+            setOrder(foundOrder);
+          }
+        }
+      };
+      loadOrder();
     }
-  }, [orderId]);
+  }, [orderId, isAdmin]);
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+  };
+
+  if (isAdmin === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center p-12 glass-card rounded-[2.5rem]">
+          <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Lock className="h-10 w-10 text-pink-500" strokeWidth={1.5} />
+          </div>
+          <h2 className="text-2xl font-light text-pink-950 font-serif">Admin Access Required</h2>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-4">This order contains private customer data</p>
+          <button 
+            onClick={() => navigate('/admin')}
+            className="mt-8 px-8 py-4 bg-pink-700 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-pink-800 transition-all shadow-lg"
+          >
+            Go to Admin Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
@@ -41,10 +121,9 @@ const OrderView: React.FC = () => {
     );
   }
 
-  const date = new Date(order.createdAt);
   const orderNumber = `ORD-${order.id.toUpperCase().slice(0, 6)}`;
-  const issueDate = date.toLocaleDateString();
-  const dueDate = new Date(order.deliveryDate).toLocaleDateString();
+  const issueDate = formatDate(order.createdAt);
+  const dueDate = formatDate(order.deliveryDate);
 
   return (
     <div className="max-w-4xl mx-auto my-12 bg-white shadow-2xl rounded-none border border-slate-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:m-0 print:rounded-none print:max-w-full">
