@@ -13,9 +13,7 @@ import {
   Info, 
   ClipboardList,
   MapPin,
-  DollarSign,
-  LogOut,
-  User
+  DollarSign
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -27,21 +25,17 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getSettings,
-  saveSettings,
-  wipeDummyData
+  saveSettings
 } from '../utils/storage';
-import { supabase } from '../utils/supabase';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
-import { LOGO_URL } from '../constants';
+import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 
 const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [password, setPassword] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [viewMode, setViewMode] = useState<'Orders' | 'Gallery' | 'Insights' | 'Settings'>('Orders');
@@ -52,33 +46,10 @@ const AdminPortal: React.FC = () => {
   const [customLogoUrl, setCustomLogoUrl] = useState<string>(LOGO_URL);
   const [adminWhatsAppNumber, setAdminWhatsAppNumber] = useState<string>('');
   const [localWebhookUrl, setLocalWebhookUrl] = useState<string>(localStorage.getItem('sweettrack_webhook_url') || '');
-  const [isWiping, setIsWiping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || localWebhookUrl;
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Safety timeout to prevent infinite loading
-      const timeout = setTimeout(() => {
-        setIsLoading(false);
-      }, 5000);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      } finally {
-        clearTimeout(timeout);
-        setIsLoading(false);
-      }
-    };
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -104,42 +75,18 @@ const AdminPortal: React.FC = () => {
   }, []);
 
   const refreshData = async () => {
-    try {
-      await syncWithSupabase();
-      const rawOrders = getOrders();
-      if (Array.isArray(rawOrders)) {
-        setOrders([...rawOrders].sort((a, b) => {
-          const dateA = a.deliveryDate ? new Date(a.deliveryDate).getTime() : 0;
-          const dateB = b.deliveryDate ? new Date(b.deliveryDate).getTime() : 0;
-          return dateA - dateB;
-        }));
-      }
-      
-      const rawGallery = getGalleryImages();
-      if (Array.isArray(rawGallery)) {
-        setGalleryImages(rawGallery);
-      }
-    } catch (error) {
-      console.error('Failed to refresh data:', error);
-    }
+    await syncWithSupabase();
+    setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
+    setGalleryImages(getGalleryImages());
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: emailInput,
-      password: passwordInput,
-    });
-    if (error) {
-      alert(error.message);
-    } else {
+    if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
+    } else {
+      alert('Wrong password');
     }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
   };
 
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
@@ -234,30 +181,6 @@ const AdminPortal: React.FC = () => {
     }
   };
 
-  const handleWipeData = async () => {
-    const confirmation = prompt('Type CONFIRM to permanently wipe all demo data from your studio:');
-    if (confirmation === 'CONFIRM') {
-      setIsWiping(true);
-      const result = await wipeDummyData();
-      setIsWiping(false);
-      if (result.success) {
-        setLastAction('Demo data wiped successfully');
-        setTimeout(() => setLastAction(null), 3000);
-        refreshData();
-      } else {
-        alert('Failed to wipe demo data. Check console for details.');
-      }
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -272,43 +195,22 @@ const AdminPortal: React.FC = () => {
             </div>
             <h2 className="text-4xl font-light mb-3 text-pink-950 font-serif tracking-tight">Studio Access</h2>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-10">Christos Cakes Management</p>
-            <form onSubmit={handleLogin} className="space-y-4 text-left">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Email Address</label>
-                <div className="relative">
-                  <User className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                  <input 
-                    type="email" 
-                    placeholder="admin@christoscakes.co.uk"
-                    className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
-                    value={emailInput}
-                    onChange={e => setEmailInput(e.target.value)}
-                    required
-                  />
-                </div>
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="relative">
+                <input 
+                  type="password" 
+                  placeholder="Access Key"
+                  className="w-full p-5 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-center font-bold tracking-[0.5em] placeholder:tracking-normal placeholder:font-medium placeholder:text-slate-300"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoFocus
+                />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Password</label>
-                <div className="relative">
-                  <LockKeyhole className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                  <input 
-                    type="password" 
-                    placeholder="••••••••"
-                    className="w-full p-5 pl-14 bg-white/40 rounded-2xl border border-white/60 focus:border-pink-300 focus:bg-white outline-none transition-all text-sm font-medium"
-                    value={passwordInput}
-                    onChange={e => setPasswordInput(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <button 
-                type="submit"
-                className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase mt-4"
-              >
+              <button className="w-full bg-pink-700 text-white p-5 rounded-2xl font-bold text-xs tracking-[0.3em] hover:bg-pink-800 transition-all shadow-[0_15px_40px_rgba(190,24,93,0.2)] active:scale-[0.98] uppercase">
                 Enter Studio
               </button>
             </form>
-            <p className="mt-8 text-[9px] text-pink-200 uppercase tracking-[0.4em] font-bold">Secure Admin Portal</p>
+            <p className="mt-8 text-[9px] text-pink-200 uppercase tracking-[0.4em] font-bold">Key: cake</p>
           </div>
         </div>
       </div>
@@ -332,51 +234,34 @@ const AdminPortal: React.FC = () => {
       )}
 
       <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-12 gap-8">
-        <div className="flex justify-between items-center w-full xl:w-auto">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
-            <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
-          </div>
-          <button 
-            onClick={handleLogout}
-            className="xl:hidden p-4 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 transition-all"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
+          <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
         </div>
-        <div className="flex items-center gap-4 w-full xl:w-auto">
-          <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
-            <button 
-              onClick={() => setViewMode('Orders')}
-              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Orders
-            </button>
-            <button 
-              onClick={() => setViewMode('Gallery')}
-              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Gallery Studio
-            </button>
-            <button 
-              onClick={() => setViewMode('Insights')}
-              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Insights
-            </button>
-            <button 
-              onClick={() => setViewMode('Settings')}
-              className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              Settings
-            </button>
-          </div>
+        <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
           <button 
-            onClick={handleLogout}
-            className="hidden xl:flex items-center gap-2 px-6 py-3.5 bg-slate-100 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all font-black text-[10px] uppercase tracking-widest"
+            onClick={() => setViewMode('Orders')}
+            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <LogOut className="h-4 w-4" />
-            Logout
+            Orders
+          </button>
+          <button 
+            onClick={() => setViewMode('Gallery')}
+            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Gallery Studio
+          </button>
+          <button 
+            onClick={() => setViewMode('Insights')}
+            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Insights
+          </button>
+          <button 
+            onClick={() => setViewMode('Settings')}
+            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Settings
           </button>
         </div>
       </header>
@@ -611,29 +496,10 @@ const AdminPortal: React.FC = () => {
                   <div className="p-6 bg-white rounded-2xl border border-slate-100">
                     <p className="text-[11px] text-slate-500 leading-relaxed">
                       This URL connects your studio to n8n for automated order notifications and client emails. 
-                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n/workflow.json</code> in the project root.
+                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n_workflow.json</code> in the project root.
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div className="p-10 bg-rose-50 rounded-[2.5rem] border border-rose-100">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                    <Trash2 className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-rose-900 font-serif">Data Management</h3>
-                </div>
-                <p className="text-xs text-rose-700/70 mb-8 leading-relaxed">
-                  Permanently remove all sample data (orders, gallery photos, pastries) to prepare your studio for real customers. This action cannot be undone.
-                </p>
-                <button 
-                  onClick={handleWipeData}
-                  disabled={isWiping}
-                  className="w-full bg-rose-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-rose-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                >
-                  {isWiping ? 'WIPING DATA...' : 'WIPE DEMO DATA'}
-                </button>
               </div>
 
               <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">

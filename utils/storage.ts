@@ -1,5 +1,5 @@
 
-import { Order, GalleryImage, Settings } from '../types';
+import { Order, GalleryImage } from '../types';
 import { supabase } from './supabase';
 
 const ORDERS_KEY = 'sweettrack_orders';
@@ -22,21 +22,18 @@ export const syncWithSupabase = async () => {
 
   // Sync Orders
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: orders, error } = await supabase.from('orders').select('*');
-      if (error) throw error;
-      if (orders) {
-        try {
-          localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-        } catch (lsError) {
-          console.warn('LocalStorage full, orders synced in memory only', lsError);
-        }
-        return orders;
+    const { data: orders, error } = await supabase.from('orders').select('*');
+    if (error) throw error;
+    if (orders) {
+      try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+      } catch (lsError) {
+        console.warn('LocalStorage full, orders synced in memory only', lsError);
       }
+      return orders;
     }
   } catch (error) {
-    console.error('Failed to sync orders (likely not an admin):', error);
+    console.error('Failed to sync orders:', error);
   }
 
   // Sync Gallery
@@ -71,9 +68,7 @@ export const syncWithSupabase = async () => {
 export const getOrders = (): Order[] => {
   try {
     const data = localStorage.getItem(ORDERS_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
+    return data ? JSON.parse(data) : [];
   } catch (error) {
     console.error('Failed to read orders from localStorage:', error);
     return [];
@@ -170,15 +165,8 @@ export const deleteOrder = async (orderId: string) => {
 
 // Gallery Methods
 export const getGalleryImages = (): GalleryImage[] => {
-  try {
-    const data = localStorage.getItem(GALLERY_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error('Failed to read gallery from localStorage:', e);
-    return [];
-  }
+  const data = localStorage.getItem(GALLERY_KEY);
+  return data ? JSON.parse(data) : [];
 };
 
 export const addGalleryImage = async (image: GalleryImage) => {
@@ -254,22 +242,5 @@ export const seedPastries = async (pastries: any[]) => {
     }
   } catch (error) {
     console.error('Failed to seed pastries:', error);
-  }
-};
-
-export const wipeDummyData = async () => {
-  try {
-    // Delete from Supabase
-    await supabase.from('orders').delete().eq('dummy_data', true);
-    await supabase.from('gallery').delete().eq('dummy_data', true);
-    await supabase.from('pastries').delete().eq('dummy_data', true);
-    await supabase.from('settings').update({ dummy_data: false }).eq('id', 1);
-
-    // Re-sync with Supabase to update local storage
-    await syncWithSupabase();
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to wipe dummy data:', error);
-    return { success: false, error };
   }
 };
