@@ -5,7 +5,7 @@ import { Printer, ChevronLeft, Lock } from 'lucide-react';
 import { getOrders, getSettings, syncWithSupabase } from '../utils/storage';
 import { supabase } from '../utils/supabase';
 import { Order } from '../types';
-import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL } from '../constants';
+import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL, PASTRIES } from '../constants';
 
 const OrderView: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -46,30 +46,28 @@ const OrderView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isAdmin === true) {
-      const loadOrder = async () => {
-        const settings = getSettings();
-        if (settings?.logoUrl) setBrandLogo(settings.logoUrl);
+    const loadOrder = async () => {
+      const settings = getSettings();
+      if (settings?.logoUrl) setBrandLogo(settings.logoUrl);
 
-        if (orderId) {
-          // Try local first
-          let orders = getOrders();
-          let foundOrder = orders.find(o => o.id === orderId);
-          
-          if (!foundOrder) {
-            // Sync if not found locally
-            orders = await syncWithSupabase() || [];
-            foundOrder = orders.find(o => o.id === orderId);
-          }
-          
-          if (foundOrder) {
-            setOrder(foundOrder);
-          }
+      if (orderId) {
+        // Try local first
+        let orders = getOrders();
+        let foundOrder = orders.find(o => o.id === orderId);
+        
+        if (!foundOrder) {
+          // Sync if not found locally
+          orders = await syncWithSupabase() || [];
+          foundOrder = orders.find(o => o.id === orderId);
         }
-      };
-      loadOrder();
-    }
-  }, [orderId, isAdmin]);
+        
+        if (foundOrder) {
+          setOrder(foundOrder);
+        }
+      }
+    };
+    loadOrder();
+  }, [orderId]);
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'N/A';
@@ -77,30 +75,10 @@ const OrderView: React.FC = () => {
     return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
   };
 
-  if (isAdmin === null) {
+  if (isAdmin === null && !order) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (isAdmin === false) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center p-12 glass-card rounded-[2.5rem]">
-          <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Lock className="h-10 w-10 text-pink-500" strokeWidth={1.5} />
-          </div>
-          <h2 className="text-2xl font-light text-pink-950 font-serif">Admin Access Required</h2>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-4">This order contains private customer data</p>
-          <button 
-            onClick={() => navigate('/admin')}
-            className="mt-8 px-8 py-4 bg-pink-700 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-pink-800 transition-all shadow-lg"
-          >
-            Go to Admin Login
-          </button>
-        </div>
       </div>
     );
   }
@@ -268,22 +246,29 @@ const OrderView: React.FC = () => {
                 </tr>
               ) : (
                 <>
-                  {order.pastries?.map((pastry, idx) => (
-                    <tr key={pastry.id}>
-                      <td className="py-12 px-6">
-                        <p className="text-2xl font-light text-luxury-ink font-serif mb-2">{pastry.name}</p>
-                        <p className="text-xs text-luxury-muted font-light opacity-70 italic">Selection from our bespoke pastry collection</p>
-                      </td>
-                      <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
-                        {/* We don't have individual prices for pastries yet, so we'll show TBD or calculate if we add them later */}
-                        TBD
-                      </td>
-                      <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">{pastry.quantity}</td>
-                      <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
-                        {idx === 0 && order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'TBD'}
-                      </td>
-                    </tr>
-                  ))}
+                  {order.pastries?.map((pastry) => {
+                    const pastryDef = PASTRIES.find(p => p.id === pastry.id);
+                    const rate = pastryDef?.price || 0;
+                    const amount = rate * pastry.quantity;
+                    
+                    return (
+                      <tr key={pastry.id}>
+                        <td className="py-12 px-6">
+                          <p className="text-2xl font-light text-luxury-ink font-serif mb-2">{pastry.name}</p>
+                          <p className="text-xs text-luxury-muted font-light opacity-70 italic">
+                            {pastryDef?.description || 'Selection from our bespoke pastry collection'}
+                          </p>
+                        </td>
+                        <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
+                          {rate > 0 ? `£${rate.toFixed(2)}` : 'TBD'}
+                        </td>
+                        <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">{pastry.quantity}</td>
+                        <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
+                          {amount > 0 ? `£${amount.toFixed(2)}` : 'TBD'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {(!order.pastries || order.pastries.length === 0) && (
                     <tr>
                       <td colSpan={4} className="py-12 px-6 text-center text-luxury-muted italic">No items selected</td>
