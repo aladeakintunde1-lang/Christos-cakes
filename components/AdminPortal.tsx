@@ -277,7 +277,7 @@ const AdminPortal: React.FC = () => {
               <DollarSign className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Total Revenue</h3>
-            <p className="text-5xl font-bold text-slate-900 font-serif">£{revenue.toFixed(2)}</p>
+            <p className="text-5xl font-bold text-slate-900 font-serif">£{(revenue || 0).toFixed(2)}</p>
           </div>
           <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
             <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -528,7 +528,7 @@ const AdminPortal: React.FC = () => {
                   
                   <div className="text-right flex flex-col items-end">
                     {order.totalPrice ? (
-                      <p className="font-bold text-4xl text-slate-900 font-serif mb-2">£{order.totalPrice.toFixed(2)}</p>
+                      <p className="font-bold text-4xl text-slate-900 font-serif mb-2">£{(order.totalPrice || 0).toFixed(2)}</p>
                     ) : (
                       <p className="font-black text-xs text-pink-600 uppercase tracking-widest mb-4 bg-pink-50 px-4 py-2 rounded-full">Price Pending</p>
                     )}
@@ -583,10 +583,10 @@ const AdminPortal: React.FC = () => {
                     <p className="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">Logistics</p>
                     <p className="text-xl font-bold text-slate-800">{order.postcode || 'Customer Collection'}</p>
                     <p className="text-sm text-slate-500 truncate mt-4">{order.address || '7 Singh Street, Wellington Studio'}</p>
-                    {order.distance !== undefined && (
+                    {order.distance !== undefined && order.distance !== null && (
                       <div className="mt-4 pt-4 border-t border-slate-200/50">
                         <span className="text-[9px] font-black text-pink-600 uppercase tracking-widest block mb-1">Estimated Mileage</span>
-                        <p className="text-lg font-black text-slate-900">{order.distance.toFixed(1)} miles</p>
+                        <p className="text-lg font-black text-slate-900">{(order.distance || 0).toFixed(1)} miles</p>
                       </div>
                     )}
                   </div>

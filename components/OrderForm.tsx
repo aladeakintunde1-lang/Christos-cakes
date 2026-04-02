@@ -417,7 +417,7 @@ const OrderForm: React.FC = () => {
                   <div className="mt-6 flex items-center justify-between p-6 bg-pink-50/30 rounded-2xl border border-pink-100/50">
                     <div>
                       <span className="text-[10px] font-bold text-pink-400 uppercase tracking-[0.3em] block mb-2">Estimated Distance</span>
-                      <span className="text-base font-bold text-pink-950">{calculatedDistance.toFixed(1)} miles from studio</span>
+                      <span className="text-base font-bold text-pink-950">{(calculatedDistance || 0).toFixed(1)} miles from studio</span>
                     </div>
                   </div>
                 )}
@@ -665,7 +665,7 @@ const OrderForm: React.FC = () => {
                         <div className="flex items-center gap-4 mt-2">
                           <span className="text-xs font-bold text-pink-600">£{(pastry as any).price} per pack</span>
                           {quantity > 0 && (
-                            <span className="text-xs font-bold text-slate-400">Subtotal: £{((pastry as any).price * quantity).toFixed(2)}</span>
+                            <span className="text-xs font-bold text-slate-400">Subtotal: £{(((pastry as any).price || 0) * quantity).toFixed(2)}</span>
                           )}
                         </div>
                       )}
@@ -707,7 +707,7 @@ const OrderForm: React.FC = () => {
             >
               <div>
                 <p className="text-[10px] font-bold text-pink-400 uppercase tracking-[0.4em] mb-1">Estimated Total</p>
-                <p className="text-3xl font-serif text-pink-950 italic">£{calculatePastryTotal().toFixed(2)}</p>
+                <p className="text-3xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)}</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Excluding delivery</p>
@@ -848,7 +848,7 @@ const OrderForm: React.FC = () => {
               <p className="text-[11px] font-bold text-pink-400 mb-4 uppercase tracking-[0.5em]">Final Quote</p>
               {order.category === 'Pastries' ? (
                 <>
-                  <p className="text-4xl font-serif text-pink-950 italic">£{calculatePastryTotal().toFixed(2)}</p>
+                  <p className="text-4xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)}</p>
                   <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">Plus any applicable delivery fees</p>
                 </>
               ) : (

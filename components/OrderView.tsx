@@ -259,11 +259,11 @@ const OrderView: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
-                    {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                    {order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
                   </td>
                   <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
                   <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
-                    {order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                    {order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
                   </td>
                 </tr>
               ) : (
@@ -280,7 +280,7 @@ const OrderView: React.FC = () => {
                       </td>
                       <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">{pastry.quantity}</td>
                       <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
-                        {idx === 0 && order.totalPrice ? `£${(order.totalPrice - (order.deliveryFee || 0)).toFixed(2)}` : 'TBD'}
+                        {idx === 0 && order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'TBD'}
                       </td>
                     </tr>
                   ))}
@@ -297,9 +297,9 @@ const OrderView: React.FC = () => {
                     <p className="text-xl font-light text-luxury-ink font-serif">Luxury Delivery Service</p>
                     <p className="text-xs text-luxury-muted mt-2 font-light opacity-70">Professional hand-delivery to {order.postcode}</p>
                   </td>
-                  <td className="py-10 px-6 text-right text-sm font-medium text-luxury-muted">£{order.deliveryFee.toFixed(2)}</td>
+                  <td className="py-10 px-6 text-right text-sm font-medium text-luxury-muted">£{(order.deliveryFee || 0).toFixed(2)}</td>
                   <td className="py-10 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
-                  <td className="py-10 px-6 text-right text-xl font-light text-luxury-ink font-serif">£{order.deliveryFee.toFixed(2)}</td>
+                  <td className="py-10 px-6 text-right text-xl font-light text-luxury-ink font-serif">£{(order.deliveryFee || 0).toFixed(2)}</td>
                 </tr>
               )}
             </tbody>
@@ -362,7 +362,7 @@ const OrderView: React.FC = () => {
             <div className="space-y-3 px-6">
               <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
                 <span>Subtotal</span>
-                <span className="text-luxury-ink font-medium">{order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}</span>
+                <span className="text-luxury-ink font-medium">{order.totalPrice ? `£${(order.totalPrice || 0).toFixed(2)}` : 'Pending'}</span>
               </div>
               <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
                 <span>VAT (0%)</span>
@@ -373,7 +373,7 @@ const OrderView: React.FC = () => {
             <div className="bg-luxury-ink text-white p-10 rounded-none shadow-2xl transform hover:scale-[1.02] transition-transform print:bg-white print:text-black print:border-4 print:border-black print:shadow-none">
               <span className="small-caps text-white/60 tracking-[0.3em] text-[10px] mb-4 block print:text-black/60">Total Amount Due</span>
               <span className="text-6xl font-light font-serif leading-none block">
-                {order.totalPrice ? `£${order.totalPrice.toFixed(2)}` : 'Pending'}
+                {order.totalPrice ? `£${(order.totalPrice || 0).toFixed(2)}` : 'Pending'}
               </span>
             </div>
             

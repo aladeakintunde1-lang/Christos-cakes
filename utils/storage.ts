@@ -66,7 +66,9 @@ export const syncWithSupabase = async () => {
 export const getOrders = (): Order[] => {
   try {
     const data = localStorage.getItem(ORDERS_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error('Failed to read orders from localStorage:', error);
     return [];
@@ -163,8 +165,15 @@ export const deleteOrder = async (orderId: string) => {
 
 // Gallery Methods
 export const getGalleryImages = (): GalleryImage[] => {
-  const data = localStorage.getItem(GALLERY_KEY);
-  return data ? JSON.parse(data) : [];
+  try {
+    const data = localStorage.getItem(GALLERY_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Failed to read gallery from localStorage:', error);
+    return [];
+  }
 };
 
 export const addGalleryImage = async (image: GalleryImage) => {
