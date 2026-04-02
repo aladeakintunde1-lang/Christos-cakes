@@ -213,7 +213,7 @@ const OrderView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {order.category === 'Cake' ? (
+              {(order.category === 'Cake' || order.category === 'Both') && (
                 <tr>
                   <td className="py-12 px-6">
                     <p className="text-2xl font-light text-luxury-ink font-serif mb-4">{order.size} Bespoke Cake</p>
@@ -237,14 +237,19 @@ const OrderView: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">
-                    {order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                    {order.totalPrice ? (
+                      order.category === 'Both' ? 'Quote' : `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}`
+                    ) : 'Pending'}
                   </td>
                   <td className="py-12 px-6 text-right text-sm font-medium text-luxury-muted">1</td>
                   <td className="py-12 px-6 text-right text-xl font-light text-luxury-ink font-serif">
-                    {order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}
+                    {order.totalPrice ? (
+                      order.category === 'Both' ? 'Quote' : `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}`
+                    ) : 'Pending'}
                   </td>
                 </tr>
-              ) : (
+              )}
+              {(order.category === 'Pastries' || order.category === 'Both') && (
                 <>
                   {order.pastries?.map((pastry) => {
                     const pastryDef = PASTRIES.find(p => p.id === pastry.id);
@@ -269,7 +274,7 @@ const OrderView: React.FC = () => {
                       </tr>
                     );
                   })}
-                  {(!order.pastries || order.pastries.length === 0) && (
+                  {order.category === 'Pastries' && (!order.pastries || order.pastries.length === 0) && (
                     <tr>
                       <td colSpan={4} className="py-12 px-6 text-center text-luxury-muted italic">No items selected</td>
                     </tr>
@@ -347,8 +352,14 @@ const OrderView: React.FC = () => {
             <div className="space-y-3 px-6">
               <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
                 <span>Subtotal</span>
-                <span className="text-luxury-ink font-medium">{order.totalPrice ? `£${(order.totalPrice || 0).toFixed(2)}` : 'Pending'}</span>
+                <span className="text-luxury-ink font-medium">{order.totalPrice ? `£${((order.totalPrice || 0) - (order.deliveryFee || 0)).toFixed(2)}` : 'Pending'}</span>
               </div>
+              {order.deliveryFee > 0 && (
+                <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
+                  <span>Delivery Fee</span>
+                  <span className="text-luxury-ink font-medium">£{(order.deliveryFee || 0).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between small-caps text-luxury-muted text-[10px] tracking-widest">
                 <span>VAT (0%)</span>
                 <span className="text-luxury-ink font-medium">£0.00</span>

@@ -3,7 +3,7 @@ export type OrderStatus = 'Pending' | 'Baking' | 'Ready' | 'Completed' | 'Cancel
 
 export type FulfillmentType = 'Collection' | 'Delivery';
 
-export type OrderCategory = 'Cake' | 'Pastries';
+export type OrderCategory = 'Cake' | 'Pastries' | 'Both';
 
 export interface Order {
   id: string;

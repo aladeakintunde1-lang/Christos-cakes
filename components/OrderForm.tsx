@@ -179,7 +179,7 @@ const OrderForm: React.FC = () => {
     const pastryTotal = calculatePastryTotal();
     const finalOrder = {
       ...order,
-      totalPrice: order.category === 'Pastries' ? pastryTotal : (order.totalPrice || 0),
+      totalPrice: (order.category === 'Pastries' || order.category === 'Both') ? pastryTotal : (order.totalPrice || 0),
       deliveryFee: order.deliveryFee || 0,
     } as Order;
     
@@ -305,12 +305,13 @@ const OrderForm: React.FC = () => {
           <ChevronLeft className="h-6 w-6" strokeWidth={2} />
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 4</span>
+          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 5</span>
           <div className="flex gap-3">
-            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 1 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 2 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 3 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-10 rounded-full transition-all duration-700 ${step >= 4 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 1 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 2 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 3 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 4 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 5 ? 'bg-pink-600' : 'bg-pink-100'}`} />
           </div>
         </div>
         <button onClick={() => navigate('/')} className="text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all">
@@ -323,7 +324,7 @@ const OrderForm: React.FC = () => {
           <h2 className="text-5xl font-serif text-pink-950 mb-3">Order Type</h2>
           <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">What would you like to order today?</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             <button 
               onClick={() => {
                 setOrder(prev => ({ ...prev, category: 'Cake' }));
@@ -347,6 +348,21 @@ const OrderForm: React.FC = () => {
                 <Cookie className="h-7 w-7" strokeWidth={1.5} />
               </div>
               <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Pastries</div>
+            </button>
+            <button 
+              onClick={() => {
+                setOrder(prev => ({ ...prev, category: 'Both' }));
+                setStep(2);
+              }}
+              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Both' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+            >
+              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Both' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <div className="flex gap-1">
+                  <Cake className="h-5 w-5" strokeWidth={1.5} />
+                  <Cookie className="h-5 w-5" strokeWidth={1.5} />
+                </div>
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Both</div>
             </button>
           </div>
         </div>
@@ -469,32 +485,34 @@ const OrderForm: React.FC = () => {
             whileHover={{ scale: 1.01, y: -2 }}
             whileTap={{ scale: 0.99 }}
             disabled={!order.deliveryDate || !order.deliveryTimeSlot || !isPostcodeValid() || distanceLoading}
-            onClick={() => setStep(3)}
+            onClick={() => {
+              if (order.category === 'Cake' || order.category === 'Both') {
+                setStep(3);
+              } else {
+                setStep(4);
+              }
+            }}
             className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] disabled:opacity-30 transition-all shadow-2xl shadow-pink-200/40 uppercase border border-white/20"
           >
-            {order.category === 'Cake' ? 'Continue to Design' : 'Continue to Selection'}
+            {order.category === 'Cake' || order.category === 'Both' ? 'Continue to Design' : 'Continue to Selection'}
           </motion.button>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 3 && (order.category === 'Cake' || order.category === 'Both') && (
         <div className="animate-fadeIn">
           <div className="flex items-center gap-4 mb-8">
             <button onClick={() => setStep(2)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div>
-              <h2 className="text-5xl font-serif text-pink-950 mb-3">
-                {order.category === 'Cake' ? 'Artistry' : 'Pastries'}
-              </h2>
-              <p className="text-sm text-slate-400 font-medium tracking-wide">
-                {order.category === 'Cake' ? 'Define the aesthetic of your masterpiece.' : 'Select the pastries you\'d like to include in your order.'}
-              </p>
+              <h2 className="text-5xl font-serif text-pink-950 mb-3">Artistry</h2>
+              <p className="text-sm text-slate-400 font-medium tracking-wide">Define the aesthetic of your masterpiece.</p>
             </div>
           </div>
           
-          {order.category === 'Cake' ? (
-            <div className="space-y-12">
+          <div className="space-y-12">
+            {/* ... existing cake design fields ... */}
               <div className="bg-pink-50/20 p-10 rounded-[3rem] border border-pink-100/50 backdrop-blur-sm">
                 <h3 className="text-[11px] font-bold text-pink-950 mb-3 uppercase tracking-[0.4em] flex items-center gap-3">
                   Visual Inspiration
@@ -647,8 +665,59 @@ const OrderForm: React.FC = () => {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {order.category === 'Cake' && (
+              <div className="mt-16 p-10 bg-pink-50/30 rounded-[3rem] border border-pink-100/50 text-center">
+                <p className="text-lg font-serif text-pink-950 mb-6 italic">Would you like to add some luxury pastries to your order?</p>
+                <div className="flex gap-4 justify-center">
+                  <button 
+                    onClick={() => {
+                      setOrder(prev => ({ ...prev, category: 'Both' }));
+                      setStep(4);
+                    }}
+                    className="px-8 py-4 bg-pink-600 text-white rounded-full font-bold text-[10px] tracking-widest uppercase hover:bg-pink-700 transition-all"
+                  >
+                    Yes, Add Pastries
+                  </button>
+                  <button 
+                    onClick={() => setStep(5)}
+                    className="px-8 py-4 bg-white text-slate-400 rounded-full font-bold text-[10px] tracking-widest uppercase border border-slate-100 hover:bg-slate-50 transition-all"
+                  >
+                    No, Just Cake
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {order.category === 'Both' && (
+              <motion.button 
+                whileHover={{ scale: 1.01, y: -2 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setStep(4)}
+                className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20 transition-all"
+              >
+                Continue to Pastries
+              </motion.button>
+            )}
+        </div>
+      )}
+
+      {step === 4 && (order.category === 'Pastries' || order.category === 'Both') && (
+        <div className="animate-fadeIn">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => {
+              if (order.category === 'Both') setStep(3);
+              else setStep(2);
+            }} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-5xl font-serif text-pink-950 mb-3">Pastries</h2>
+              <p className="text-sm text-slate-400 font-medium tracking-wide">Select the pastries you'd like to include in your order.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {pastries.map((pastry: any) => {
                 const selected = order.pastries?.find(p => p.id === pastry.id);
                 const quantity = selected?.quantity || 0;
@@ -697,6 +766,40 @@ const OrderForm: React.FC = () => {
                 );
               })}
             </div>
+
+          {order.category === 'Pastries' && (
+            <div className="mt-16 p-10 bg-pink-50/30 rounded-[3rem] border border-pink-100/50 text-center">
+              <p className="text-lg font-serif text-pink-950 mb-6 italic">Would you like to add a bespoke luxury cake to your order?</p>
+              <div className="flex gap-4 justify-center">
+                <button 
+                  onClick={() => {
+                    setOrder(prev => ({ ...prev, category: 'Both' }));
+                    setStep(2);
+                  }}
+                  className="px-8 py-4 bg-pink-600 text-white rounded-full font-bold text-[10px] tracking-widest uppercase hover:bg-pink-700 transition-all"
+                >
+                  Yes, Design a Cake
+                </button>
+                <button 
+                  onClick={() => setStep(5)}
+                  className="px-8 py-4 bg-white text-slate-400 rounded-full font-bold text-[10px] tracking-widest uppercase border border-slate-100 hover:bg-slate-50 transition-all"
+                >
+                  No, Just Pastries
+                </button>
+              </div>
+            </div>
+          )}
+
+          {order.category === 'Both' && (
+            <motion.button 
+              whileHover={{ scale: 1.01, y: -2 }}
+              whileTap={{ scale: 0.99 }}
+              disabled={!order.pastries || order.pastries.length === 0}
+              onClick={() => setStep(5)}
+              className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20 disabled:opacity-30 transition-all"
+            >
+              Continue to Review
+            </motion.button>
           )}
 
           {order.category === 'Pastries' && calculatePastryTotal() > 0 && (
@@ -714,23 +817,16 @@ const OrderForm: React.FC = () => {
               </div>
             </motion.div>
           )}
-
-          <motion.button 
-            whileHover={{ scale: 1.01, y: -2 }}
-            whileTap={{ scale: 0.99 }}
-            disabled={order.category === 'Pastries' && (!order.pastries || order.pastries.length === 0)}
-            onClick={() => setStep(4)}
-            className="w-full bg-pink-700 text-white py-7 rounded-full mt-16 font-bold text-sm tracking-[0.3em] shadow-2xl shadow-pink-200/40 uppercase border border-white/20 disabled:opacity-30 transition-all"
-          >
-            Review Summary
-          </motion.button>
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div className="animate-fadeIn">
           <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => setStep(3)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
+            <button onClick={() => {
+              if (order.category === 'Cake') setStep(3);
+              else setStep(4);
+            }} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div>
@@ -780,8 +876,9 @@ const OrderForm: React.FC = () => {
               <div className="space-y-8">
                 <h3 className="text-[11px] font-bold text-pink-950 uppercase tracking-[0.4em] mb-6">Specifications</h3>
                 <div className="space-y-6">
-                  {order.category === 'Cake' ? (
-                    <>
+                  {(order.category === 'Cake' || order.category === 'Both') && (
+                    <div className="space-y-4 pb-6 border-b border-pink-100">
+                      <p className="text-[10px] font-black text-pink-600 uppercase tracking-widest mb-4">Bespoke Cake</p>
                       <div className="flex justify-between items-center py-4 border-b border-pink-50">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Flavor</span>
                         <span className="text-sm font-bold text-pink-900 text-right max-w-[200px] truncate">{order.flavor || 'Not specified'}</span>
@@ -808,9 +905,12 @@ const OrderForm: React.FC = () => {
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</span>
                         <span className="text-sm font-bold text-pink-900 italic">"{order.messageOnCake || 'None'}"</span>
                       </div>
-                    </>
-                  ) : (
+                    </div>
+                  )}
+                  
+                  {(order.category === 'Pastries' || order.category === 'Both') && (
                     <div className="space-y-4">
+                      <p className="text-[10px] font-black text-pink-600 uppercase tracking-widest mb-4">Luxury Pastries</p>
                       {order.pastries?.map(pastry => (
                         <div key={pastry.id} className="flex justify-between items-center py-4 border-b border-pink-50">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{pastry.name}</span>
@@ -850,6 +950,11 @@ const OrderForm: React.FC = () => {
                 <>
                   <p className="text-4xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)}</p>
                   <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">Plus any applicable delivery fees</p>
+                </>
+              ) : order.category === 'Both' ? (
+                <>
+                  <p className="text-4xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)} + Cake Quote</p>
+                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you with the full bespoke total</p>
                 </>
               ) : (
                 <>
