@@ -60,11 +60,22 @@ const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsAuthenticated(true);
+      // Safety timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 5000);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        clearTimeout(timeout);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     checkAuth();
   }, []);
@@ -93,9 +104,24 @@ const AdminPortal: React.FC = () => {
   }, []);
 
   const refreshData = async () => {
-    await syncWithSupabase();
-    setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
-    setGalleryImages(getGalleryImages());
+    try {
+      await syncWithSupabase();
+      const rawOrders = getOrders();
+      if (Array.isArray(rawOrders)) {
+        setOrders([...rawOrders].sort((a, b) => {
+          const dateA = a.deliveryDate ? new Date(a.deliveryDate).getTime() : 0;
+          const dateB = b.deliveryDate ? new Date(b.deliveryDate).getTime() : 0;
+          return dateA - dateB;
+        }));
+      }
+      
+      const rawGallery = getGalleryImages();
+      if (Array.isArray(rawGallery)) {
+        setGalleryImages(rawGallery);
+      }
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {

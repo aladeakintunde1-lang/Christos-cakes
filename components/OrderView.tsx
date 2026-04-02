@@ -16,19 +16,31 @@ const OrderView: React.FC = () => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Safety timeout
+      const timeout = setTimeout(() => {
+        if (isAdmin === null) setIsAdmin(false);
+      }, 5000);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setIsAdmin(false);
+          return;
+        }
+        
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        setIsAdmin(adminData?.role === 'admin');
+      } catch (error) {
+        console.error('Admin check failed:', error);
         setIsAdmin(false);
-        return;
+      } finally {
+        clearTimeout(timeout);
       }
-      
-      const { data: adminData } = await supabase
-        .from('admin_users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      
-      setIsAdmin(adminData?.role === 'admin');
     };
     checkAdmin();
   }, []);
@@ -58,6 +70,12 @@ const OrderView: React.FC = () => {
       loadOrder();
     }
   }, [orderId, isAdmin]);
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+  };
 
   if (isAdmin === null) {
     return (
@@ -103,10 +121,9 @@ const OrderView: React.FC = () => {
     );
   }
 
-  const date = new Date(order.createdAt);
   const orderNumber = `ORD-${order.id.toUpperCase().slice(0, 6)}`;
-  const issueDate = date.toLocaleDateString();
-  const dueDate = new Date(order.deliveryDate).toLocaleDateString();
+  const issueDate = formatDate(order.createdAt);
+  const dueDate = formatDate(order.deliveryDate);
 
   return (
     <div className="max-w-4xl mx-auto my-12 bg-white shadow-2xl rounded-none border border-slate-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:m-0 print:rounded-none print:max-w-full">
