@@ -230,23 +230,28 @@ const OrderForm: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <div className="animate-fadeIn min-h-[70vh] flex items-center justify-center py-12 px-4">
-        <div className="glass-card rounded-[3.5rem] p-12 md:p-24 max-w-3xl w-full text-center relative overflow-hidden shadow-[0_40px_100px_rgba(219,39,119,0.1)] border-white/80">
-          {/* Confetti-like decor */}
-          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-pink-500 via-rose-300 to-pink-600" />
+      <div className="animate-fadeIn min-h-[70vh] flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        {/* Background Atmosphere */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] bg-pink-100/20 rounded-full blur-[120px] -z-10" />
+        
+        <div className="glass-card rounded-[4rem] p-12 md:p-24 max-w-3xl w-full text-center relative overflow-hidden shadow-[0_50px_120px_rgba(219,39,119,0.12)] border-white/90">
+          <div className="absolute top-0 left-0 w-full h-[3.5px] bg-gradient-to-r from-pink-500 via-rose-300 to-pink-600" />
           
           <motion.div 
-            initial={{ scale: 0, rotate: -20 }}
+            initial={{ scale: 0, rotate: -25 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 15, stiffness: 200 }}
-            className="w-28 h-28 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-12 border border-pink-100 shadow-inner"
+            transition={{ type: "spring", damping: 12, stiffness: 200 }}
+            className="w-32 h-32 bg-pink-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-12 border border-pink-100 shadow-inner group"
           >
-            <Check className="h-14 w-14 text-pink-600" strokeWidth={2.5} />
+            <Check className="h-16 w-16 text-pink-600 group-hover:scale-110 transition-transform" strokeWidth={2} />
           </motion.div>
           
-          <h2 className="text-6xl font-serif text-pink-950 mb-8 leading-[0.9] tracking-tighter">Your Journey <br/><span className="italic text-pink-600">Begins</span></h2>
+          <h2 className="text-7xl font-serif text-pink-950 mb-8 leading-[0.85] tracking-tighter">
+            Your journey <br /><span className="italic text-pink-600 font-light">begins today</span>
+          </h2>
+          <div className="w-12 h-1 bg-pink-100 mx-auto mb-10 rounded-full" />
           <p className="text-slate-500 mb-16 leading-relaxed font-medium text-lg max-w-lg mx-auto">
-            Thank you, <span className="font-bold text-pink-800">{order.customerName}</span>. Your bespoke luxury cake order has been received. We are preparing to bring your vision to life.
+            Thank you, <span className="text-pink-800 font-serif italic text-xl">{order.customerName}</span>. Your vision is being reviewed at our atelier. We look forward to creating something extraordinary together.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
@@ -299,107 +304,145 @@ const OrderForm: React.FC = () => {
       <div className="absolute -inset-4 bg-white/20 rounded-[4rem] -z-10 blur-xl" />
       <div className="absolute inset-2 bg-pink-100/10 rounded-[3.5rem] -z-10 translate-y-4" />
       
-      <div className="glass-card rounded-[3.5rem] p-10 md:p-16 mb-20 shadow-[0_40px_100px_rgba(219,39,119,0.08)] animate-slideIn border-white/80">
-        <div className="flex justify-between items-center mb-16">
-        <button onClick={() => setStep(prev => Math.max(1, prev - 1))} className={`text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all ${step === 1 ? 'invisible' : ''}`}>
-          <ChevronLeft className="h-6 w-6" strokeWidth={2} />
+      <div className="glass-card rounded-[4rem] p-10 md:p-20 mb-20 shadow-[0_45px_100px_rgba(219,39,119,0.06)] animate-slideIn border-white/90 relative overflow-hidden">
+        {/* Subtle decorative background elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-pink-100/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 -z-10" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-rose-100/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 -z-10" />
+
+        <div className="flex justify-between items-center mb-16 px-4">
+        <button 
+          onClick={() => setStep(prev => Math.max(1, prev - 1))} 
+          className={`text-slate-300 p-4 hover:bg-pink-50 hover:text-pink-600 rounded-full transition-all group ${step === 1 ? 'invisible' : ''}`}
+        >
+          <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" strokeWidth={1.5} />
         </button>
-        <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold text-pink-300 uppercase tracking-[0.6em] mb-4">Step {step} of 5</span>
-          <div className="flex gap-3">
-            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 1 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 2 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 3 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 4 ? 'bg-pink-600' : 'bg-pink-100'}`} />
-            <div className={`h-[2px] w-8 rounded-full transition-all duration-700 ${step >= 5 ? 'bg-pink-600' : 'bg-pink-100'}`} />
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] font-black text-pink-300 uppercase tracking-[0.8em]">Phase</span>
+            <span className="text-[12px] font-serif italic text-pink-900 leading-none">{step} of 5</span>
+          </div>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div 
+                key={i}
+                className={`h-[1.5px] w-10 rounded-full transition-all duration-1000 ${
+                  step === i ? 'bg-pink-600 w-16' : 
+                  step > i ? 'bg-pink-200' : 'bg-slate-100'
+                }`} 
+              />
+            ))}
           </div>
         </div>
-        <button onClick={() => navigate('/')} className="text-slate-400 p-4 hover:bg-pink-50 rounded-full transition-all">
-          <X className="h-6 w-6" strokeWidth={2} />
+        <button 
+          onClick={() => navigate('/')} 
+          className="text-slate-300 p-4 hover:bg-pink-50 hover:text-pink-600 rounded-full transition-all group"
+        >
+          <X className="h-6 w-6 group-hover:rotate-90 transition-transform" strokeWidth={1.5} />
         </button>
       </div>
 
       {step === 1 && (
-        <div className="animate-fadeIn">
-          <h2 className="text-5xl font-serif text-pink-950 mb-3">Order Type</h2>
-          <p className="text-sm text-slate-400 mb-12 font-medium tracking-wide">What would you like to order today?</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <button 
-              onClick={() => {
-                setOrder(prev => ({ ...prev, category: 'Cake' }));
-                setStep(2);
-              }}
-              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Cake' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
-            >
-              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Cake' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <Cake className="h-7 w-7" strokeWidth={1.5} />
-              </div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Cake</div>
-            </button>
-            <button 
-              onClick={() => {
-                setOrder(prev => ({ ...prev, category: 'Pastries' }));
-                setStep(2);
-              }}
-              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Pastries' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
-            >
-              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Pastries' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <Cookie className="h-7 w-7" strokeWidth={1.5} />
-              </div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Pastries</div>
-            </button>
-            <button 
-              onClick={() => {
-                setOrder(prev => ({ ...prev, category: 'Both' }));
-                setStep(2);
-              }}
-              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.category === 'Both' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
-            >
-              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.category === 'Both' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <div className="flex gap-1">
-                  <Cake className="h-5 w-5" strokeWidth={1.5} />
-                  <Cookie className="h-5 w-5" strokeWidth={1.5} />
-                </div>
-              </div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Both</div>
-            </button>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-3xl mx-auto"
+        >
+          <div className="text-center mb-20">
+            <h2 className="text-6xl font-serif text-pink-950 mb-6 tracking-tight leading-tight">
+              Select your <span className="italic text-pink-600">indulgence</span>
+            </h2>
+            <div className="w-16 h-[1px] bg-pink-200 mx-auto mb-6" />
+            <p className="text-slate-400 font-medium tracking-wide text-sm max-w-md mx-auto leading-relaxed">
+              Every creation is balanced with artisanal precision and bespoke elegance. How can we serve you today?
+            </p>
           </div>
-        </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { id: 'Cake', label: 'Bespoke Cake', sub: 'Artisanal Design', icon: Cake },
+              { id: 'Pastries', label: 'Luxury Pastries', sub: 'Handmade Treats', icon: Cookie },
+              { id: 'Both', label: 'Couture Pairing', sub: 'Ultimate Atelier', icons: [Cake, Cookie] }
+            ].map((option, idx) => (
+              <motion.button 
+                key={option.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setOrder(prev => ({ ...prev, category: option.id as OrderCategory }));
+                  setStep(2);
+                }}
+                className={`relative p-12 rounded-[3.5rem] border transition-all flex flex-col items-center text-center group ${
+                  order.category === option.id 
+                    ? 'border-pink-300 bg-white shadow-[0_30px_60px_rgba(219,39,119,0.1)]' 
+                    : 'border-slate-100 bg-white/40 hover:border-pink-200 hover:bg-white'
+                }`}
+              >
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 transition-all duration-500 scale-110 ${
+                  order.category === option.id 
+                    ? 'bg-pink-600 text-white shadow-xl rotate-6' 
+                    : 'bg-slate-50 text-slate-300 group-hover:bg-pink-50 group-hover:text-pink-400'
+                }`}>
+                  {option.icons ? (
+                    <div className="flex gap-1">
+                      {option.icons.map((Icon, i) => (
+                        <Icon key={i} className="h-6 w-6" strokeWidth={1} />
+                      ))}
+                    </div>
+                  ) : (
+                    option.icon && <option.icon className="h-8 w-8" strokeWidth={1} />
+                  )}
+                </div>
+                
+                <h3 className="text-lg font-serif text-pink-950 mb-2 group-hover:text-pink-600 transition-colors">
+                  {option.label}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em] group-hover:text-pink-300 transition-colors">
+                  {option.sub}
+                </p>
+
+                {order.category === option.id && (
+                  <motion.div 
+                    layoutId="selection-ring"
+                    className="absolute -inset-[2px] border-2 border-pink-500/20 rounded-[3.5rem] -z-10"
+                  />
+                )}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
       )}
 
       {step === 2 && (
-        <div className="animate-fadeIn">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => setStep(1)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h2 className="text-5xl font-serif text-pink-950 mb-3">Logistics</h2>
-              <p className="text-sm text-slate-400 font-medium tracking-wide">Select your preferred fulfillment method.</p>
-            </div>
+        <div className="animate-fadeIn max-w-3xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-serif text-pink-950 mb-4 tracking-tight">Logistic <span className="italic text-pink-600 font-light">&</span> Details</h2>
+            <div className="w-12 h-[1px] bg-pink-100 mx-auto mb-6" />
+            <p className="text-sm text-slate-400 font-medium tracking-wide max-w-sm mx-auto">Select your preferred fulfillment method and event timeline.</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-8 mb-12">
+          <div className="grid grid-cols-2 gap-8 mb-16">
             <button 
               onClick={() => setOrder(prev => ({ ...prev, fulfillmentType: 'Collection' }))}
-              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Collection' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+              className={`p-10 rounded-[3rem] border transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Collection' ? 'border-pink-300 bg-white shadow-xl shadow-pink-100/10' : 'border-slate-100 bg-white/40 hover:border-pink-200 hover:bg-white'}`}
             >
-              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Collection' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <Store className="h-7 w-7" strokeWidth={1.5} />
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 ${order.fulfillmentType === 'Collection' ? 'bg-pink-600 text-white shadow-lg rotate-3' : 'bg-slate-50 text-slate-300 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <Store className="h-6 w-6" strokeWidth={1.5} />
               </div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Collection</div>
-              <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Complimentary</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-800">Atelier Collection</div>
+              <div className="text-[9px] text-pink-500 font-bold uppercase tracking-[0.2em] opacity-60">Hand-over</div>
             </button>
             <button 
               onClick={() => setOrder(prev => ({ ...prev, fulfillmentType: 'Delivery' }))}
-              className={`p-10 rounded-[2.5rem] border-2 transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Delivery' ? 'border-pink-500 bg-pink-50/20 shadow-2xl shadow-pink-200/20' : 'border-slate-100 bg-white/40 hover:border-pink-200'}`}
+              className={`p-10 rounded-[3rem] border transition-all flex flex-col items-center gap-4 group ${order.fulfillmentType === 'Delivery' ? 'border-pink-300 bg-white shadow-xl shadow-pink-100/10' : 'border-slate-100 bg-white/40 hover:border-pink-200 hover:bg-white'}`}
             >
-              <div className={`p-5 rounded-2xl transition-all duration-500 ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
-                <Truck className="h-7 w-7" strokeWidth={1.5} />
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600 text-white shadow-lg -rotate-3' : 'bg-slate-50 text-slate-300 group-hover:bg-pink-50 group-hover:text-pink-400'}`}>
+                <Truck className="h-6 w-6" strokeWidth={1.5} />
               </div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-800">Delivery</div>
-              <div className="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em]">Bespoke Quote</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-800">White-Glove Delivery</div>
+              <div className="text-[9px] text-pink-500 font-bold uppercase tracking-[0.2em] opacity-60">Bespoke Quote</div>
             </button>
           </div>
 
@@ -500,15 +543,11 @@ const OrderForm: React.FC = () => {
       )}
 
       {step === 3 && (order.category === 'Cake' || order.category === 'Both') && (
-        <div className="animate-fadeIn">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => setStep(2)} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h2 className="text-5xl font-serif text-pink-950 mb-3">Artistry</h2>
-              <p className="text-sm text-slate-400 font-medium tracking-wide">Define the aesthetic of your masterpiece.</p>
-            </div>
+        <div className="animate-fadeIn max-w-3xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-serif text-pink-950 mb-4 tracking-tight">Cake <span className="italic text-pink-600 font-light">Artistry</span></h2>
+            <div className="w-12 h-[1px] bg-pink-100 mx-auto mb-6" />
+            <p className="text-sm text-slate-400 font-medium tracking-wide max-w-sm mx-auto">Define the bespoke aesthetics and flavor palette for your masterpiece.</p>
           </div>
           
           <div className="space-y-12">
@@ -703,18 +742,11 @@ const OrderForm: React.FC = () => {
       )}
 
       {step === 4 && (order.category === 'Pastries' || order.category === 'Both') && (
-        <div className="animate-fadeIn">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => {
-              if (order.category === 'Both') setStep(3);
-              else setStep(2);
-            }} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h2 className="text-5xl font-serif text-pink-950 mb-3">Pastries</h2>
-              <p className="text-sm text-slate-400 font-medium tracking-wide">Select the pastries you'd like to include in your order.</p>
-            </div>
+        <div className="animate-fadeIn max-w-3xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-serif text-pink-950 mb-4 tracking-tight">Luxury <span className="italic text-pink-600 font-light">Treats</span></h2>
+            <div className="w-12 h-[1px] bg-pink-100 mx-auto mb-6" />
+            <p className="text-sm text-slate-400 font-medium tracking-wide max-w-sm mx-auto">Select handmade artisanal pastries to accompany your celebration.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -821,18 +853,10 @@ const OrderForm: React.FC = () => {
       )}
 
       {step === 5 && (
-        <div className="animate-fadeIn">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => {
-              if (order.category === 'Cake') setStep(3);
-              else setStep(4);
-            }} className="p-3 rounded-full hover:bg-pink-50 text-pink-600 transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div>
-              <h2 className="text-5xl font-serif text-pink-950 mb-3">Review</h2>
-              <p className="text-sm text-slate-400 font-medium tracking-wide">Confirm your bespoke specifications.</p>
-            </div>
+        <div className="animate-fadeIn max-w-3xl mx-auto">
+          <div className="mb-20">
+            <h2 className="text-5xl font-serif text-pink-950 mb-4 tracking-tight">Review & Finalize</h2>
+            <p className="text-sm text-slate-400 font-medium tracking-wide">Verify your bespoke selection before sending to our atelier.</p>
           </div>
           
           <div className="space-y-12">
