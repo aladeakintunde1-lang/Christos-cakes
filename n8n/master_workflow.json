@@ -1,0 +1,344 @@
+{
+  "name": "Christos Cakes - Full Notification Mode",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cake-orders",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "NEW_ORDER"
+            }
+          ]
+        }
+      },
+      "name": "Is New Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "SEND_ORDER"
+            }
+          ]
+        }
+      },
+      "name": "Is Send Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        350,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
+        "message": "🎂 *New Order Request: {{ $node[\"Webhook Trigger\"].json[\"customerName\"] }}*\n\n*Type:* {{ $node[\"Webhook Trigger\"].json[\"fulfillmentType\"] }}\n*Selection:* {{ $node[\"Webhook Trigger\"].json[\"flavor\"] }} ({{ $node[\"Webhook Trigger\"].json[\"size\"] }})\n*Date:* {{ $node[\"Webhook Trigger\"].json[\"deliveryDate\"] }} ({{ $node[\"Webhook Trigger\"].json[\"deliveryTimeSlot\"] }})\n\nView details: {{ $node[\"Webhook Trigger\"].json[\"appUrl\"] }}/#/admin"
+      },
+      "name": "Notify Admin (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        650,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "orders@christoscakes.co.uk",
+        "toEmail": "aladeakintunde1@gmail.com",
+        "subject": "=🚨 New Order Request: {{ $node[\"Webhook Trigger\"].json[\"customerName\"] }}",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">New Order Request</h1>\n  <p>Hello Admin,</p>\n  <p>A new order has been received from <strong>{{ $node[\"Webhook Trigger\"].json[\"customerName\"] }}</strong>:</p>\n  <ul style=\"list-style: none; padding: 0; background: #fff; padding: 20px; border-radius: 20px; border: 1px solid #fce7f3;\">\n    <li><strong>Order Type:</strong> {{ $node[\"Webhook Trigger\"].json[\"fulfillmentType\"] }}</li>\n    <li><strong>Selection:</strong> {{ $node[\"Webhook Trigger\"].json[\"flavor\"] }}</li>\n    <li><strong>Size:</strong> {{ $node[\"Webhook Trigger\"].json[\"size\"] }}</li>\n    <li><strong>Date:</strong> {{ $node[\"Webhook Trigger\"].json[\"deliveryDate\"] }}</li>\n    <li><strong>Window:</strong> {{ $node[\"Webhook Trigger\"].json[\"deliveryTimeSlot\"] }}</li>\n  </ul>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{ $node[\"Webhook Trigger\"].json[\"appUrl\"] }}/#/admin\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px; display: inline-block;\">ACCESS STUDIO</a>\n  </p>\n</div>"
+      },
+      "name": "Notify Admin (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        650,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "=whatsapp:{{ $json.phone }}",
+        "message": "🧾 *Christos Cakes Confirmation*\n\nHi {{ $json.customerName }},\n\nYour bespoke order details are ready.\n\n*Total:* £{{ $json.totalPrice }}\n\n*View Invoice:* {{ $json.appUrl }}#/order/{{ $json.id }}\n\nThank you!"
+      },
+      "name": "Send Client Invoice (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        650,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "atelier@christoscakes.co.uk",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=Your Christos Cakes Order Selection: {{ $json.customerName }}",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">Bespoke Confirmation</h1>\n  <p>Dear {{ $json.customerName }},</p>\n  <p>Your luxury order details are now ready.</p>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{ $json.appUrl }}/#/order/{{ $json.id }}\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px;\">DOWNLOAD INVOICE</a>\n  </p>\n</div>"
+      },
+      "name": "Send Client Invoice (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        650,
+        570
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 8
+            }
+          ]
+        }
+      },
+      "name": "Daily 8AM Summary",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        100,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databaseTable",
+        "operation": "getAll",
+        "table": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "key": "status",
+              "operator": "notEqual",
+              "value": "Cancelled"
+            }
+          ]
+        }
+      },
+      "name": "Get Orders from Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        350,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = items.map(i => i.json);\nconst now = new Date();\nconst startOfWeek = new Date(now);\nstartOfWeek.setDate(now.getDate() - now.getDay());\nstartOfWeek.setHours(0, 0, 0, 0);\n\nconst endOfWeek = new Date(startOfWeek);\nendOfWeek.setDate(startOfWeek.getDate() + 7);\n\nconst weeklyOrders = orders.filter(o => {\n  const deliveryDate = new Date(o.deliveryDate);\n  return deliveryDate >= startOfWeek && deliveryDate < endOfWeek;\n});\n\nif (weeklyOrders.length === 0) return [];\n\nlet message = \"📅 *Weekly Summary*\\n\\n\";\nweeklyOrders.forEach(o => {\n  message += `🎂 *${o.customerName}*\\n📅 ${o.deliveryDate}\\n---\\n`;\n});\n\nreturn [{ json: { message } }];"
+      },
+      "name": "Format Summary Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        600,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
+        "message": "={{ $json.message }}"
+      },
+      "name": "Send Digest (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        850,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "digest@christoscakes.co.uk",
+        "toEmail": "aladeakintunde1@gmail.com",
+        "subject": "📅 Christos Cakes Daily Digest",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">Daily Atelier Digest</h1>\n  <p>Good morning Admin,</p>\n  <p>Here is your schedule and action list for the day:</p>\n  <pre style=\"background: #fff; padding: 20px; border-radius: 20px; border: 1px solid #fce7f3; white-space: pre-wrap; font-family: serif;\">{{ $json.message }}</pre>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{ $json.appUrl }}/#/admin\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px;\">OPEN STUDIO</a>\n  </p>\n</div>"
+      },
+      "name": "Send Digest (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        850,
+        920
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is New Order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Order?": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin (WhatsApp)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Admin (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Send Order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Send Order?": {
+      "main": [
+        [
+          {
+            "node": "Send Client Invoice (WhatsApp)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Client Invoice (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin (Email)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Invoice (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Invoice (Email)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8AM Summary": {
+      "main": [
+        [
+          {
+            "node": "Get Orders from Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Orders from Supabase": {
+      "main": [
+        [
+          {
+            "node": "Format Summary Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Summary Code": {
+      "main": [
+        [
+          {
+            "node": "Send Digest (WhatsApp)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Digest (Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

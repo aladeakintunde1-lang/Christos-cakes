@@ -1,0 +1,107 @@
+{
+  "name": "SweetTrack Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sweettrack-orders",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "value1": "={{$json.type}}",
+              "value2": "NEW_ORDER"
+            },
+            {
+              "value1": "={{$json.type}}",
+              "value2": "SEND_ORDER"
+            }
+          ]
+        }
+      },
+      "id": "switch-logic",
+      "name": "Switch Logic",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "orders@christoscakes.co.uk",
+        "toEmail": "aladeakintunde1@gmail.com",
+        "subject": "=🚨 New Indulgence Requested: {{$json.customerName}}",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">New Couture Request</h1>\n  <hr style=\"border: 0; border-top: 1px solid #fce7f3; margin: 30px 0;\" />\n  <p>Hello Admin,</p>\n  <p>A new order has been received from <strong>{{$json.customerName}}</strong>.</p>\n  <div style=\"background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #fbcfe8;\">\n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Event Date</p>\n    <p style=\"margin: 5px 0 20px; font-size: 18px;\">{{$json.deliveryDate}} ({{$json.deliveryTimeSlot}})</p>\n    \n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Items</p>\n    <p style=\"margin: 5px 0 0;\">{{$json.category}} Package</p>\n  </div>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{$json.appUrl}}/#/admin\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px;\">ACCESS STUDIO TO FINALIZE</a>\n  </p>\n  <p style=\"color: #78716c; font-size: 12px; text-align: center; margin-top: 40px;\">© 2024 Christos Cakes Atelier</p>\n</div>"
+      },
+      "id": "admin-notify",
+      "name": "Admin Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "atelier@christoscakes.co.uk",
+        "toEmail": "={{$json.email}}",
+        "subject": "=Your Christos Cakes Order Selection: {{$json.customerName}}",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">Bespoke Confirmation</h1>\n  <p style=\"text-align: center; font-style: italic; color: #78716c;\">Artisanal precision. Custom elegance.</p>\n  <hr style=\"border: 0; border-top: 1px solid #fce7f3; margin: 30px 0;\" />\n  <p>Dear {{$json.customerName}},</p>\n  <p>We have finalized the details for your luxury order. Your vision is now ready for the baking phase.</p>\n  <div style=\"background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #fbcfe8; margin: 30px 0;\">\n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Total Amount Due</p>\n    <p style=\"margin: 5px 0; font-size: 28px; color: #be185d;\">£{{$json.totalPrice}}</p>\n  </div>\n  <p>Plase follow the link below to view your full invoice and payment instructions.</p>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{$json.appUrl}}/#/order/{{$json.id}}\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px;\">DOWNLOAD INVOICE</a>\n  </p>\n  <p style=\"margin-top: 40px;\">Warmly,<br />Christianah Alade</p>\n  <p style=\"color: #78716c; font-size: 12px; text-align: center; margin-top: 40px;\">© 2024 Christos Cakes Boutique</p>\n</div>"
+      },
+      "id": "client-confirmation",
+      "name": "Client Confirmation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        840,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "switch-logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "switch-logic": {
+      "main": [
+        [
+          {
+            "node": "admin-notify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "client-confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
