@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll } from 'motion/react';
-import { Instagram, Plus } from 'lucide-react';
-import { getGalleryImages } from '../utils/storage';
-import { GalleryImage } from '../types';
+import { Instagram, Plus, Search, Loader2, Sparkles, ChevronRight, Clock, MapPin } from 'lucide-react';
+import { getGalleryImages, getOrders, syncWithSupabase } from '../utils/storage';
+import { supabase } from '../utils/supabase';
+import { GalleryImage, Order } from '../types';
 import { INSTAGRAM_URL } from '../constants';
 
 const DEFAULT_IMAGES: Partial<GalleryImage>[] = [
@@ -34,16 +35,103 @@ const FloatingElement = ({ className, delay = 0 }: { className?: string, delay?:
 const CustomerPortal: React.FC = () => {
   const navigate = useNavigate();
   const [images, setImages] = useState<Partial<GalleryImage>[]>([]);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [localOrders, setLocalOrders] = useState<Order[]>([]);
+  const [searchOrderId, setSearchOrderId] = useState('');
+  const [searchError, setSearchError] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const { scrollYProgress } = useScroll();
 
   useEffect(() => {
-    const stored = getGalleryImages();
-    if (stored.length > 0) {
-      setImages(stored);
-    } else {
-      setImages(DEFAULT_IMAGES);
-    }
+    const loadAndSync = async () => {
+      const stored = getGalleryImages();
+      if (stored.length > 0) {
+        setImages(stored);
+      } else {
+        setImages(DEFAULT_IMAGES);
+      }
+
+      // Initial load of local orders
+      const initialOrders = getOrders();
+      setLocalOrders(initialOrders);
+
+      // Trigger sync with Supabase and update state with latest
+      try {
+        const synced = await syncWithSupabase();
+        if (synced) {
+          setLocalOrders(synced);
+          
+          // Load customer reflections
+          const withFeedback = synced
+            .filter((o) => o.feedbackRating && o.feedbackRating >= 4 && o.feedbackComment)
+            .sort((a, b) => new Date(b.feedbackCreatedAt || '').getTime() - new Date(a.feedbackCreatedAt || '').getTime())
+            .slice(0, 3);
+          setFeedbacks(withFeedback);
+        }
+      } catch (err) {
+        console.error('Error in portal load and sync:', err);
+      }
+    };
+    
+    loadAndSync();
   }, []);
+
+  const handleTrackOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchOrderId.trim().toLowerCase();
+    if (!query) return;
+
+    setIsSearching(true);
+    setSearchError('');
+
+    // Remove ORD- or key prefix for flexible searching
+    const cleanId = query.replace(/^ord-/i, '');
+
+    // 1. Try local match (full or prefix/partial)
+    const localMatch = localOrders.find(
+      o => o.id.toLowerCase() === cleanId || o.id.toLowerCase().startsWith(cleanId) || o.id.toLowerCase().slice(0, 8) === cleanId
+    );
+
+    if (localMatch) {
+      navigate(`/order/${localMatch.id}`);
+      setIsSearching(false);
+      return;
+    }
+
+    // 2. Try Supabase lookup
+    try {
+      // First, try a direct exact match on ID
+      let { data, error } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('id', cleanId)
+        .maybeSingle();
+
+      if (!data) {
+        // If not found, fetch all IDs to do a robust prefix match (since IDs are UUIDs and customers use a truncated version)
+        const { data: allIds } = await supabase.from('orders').select('id');
+        if (allIds) {
+          const matched = allIds.find(
+            o => o.id.toLowerCase().startsWith(cleanId) || o.id.toLowerCase().includes(cleanId)
+          );
+          if (matched) {
+            data = matched;
+          }
+        }
+      }
+
+      if (data) {
+        navigate(`/order/${data.id}`);
+      } else {
+        setSearchError('We could not find a commission with that ID. Please verify the ID or contact us.');
+      }
+    } catch (err) {
+      console.error('Error tracking order:', err);
+      setSearchError('A Connection error occurred. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <div className="relative animate-fadeIn pt-12 pb-24">
@@ -140,17 +228,175 @@ const CustomerPortal: React.FC = () => {
 
             <div className="flex justify-center">
               <motion.button 
-                whileHover={{ scale: 1.02, y: -4 }}
+                whileHover={{ scale: 1.03, y: -6 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/order')}
-                className="bg-pink-700 text-white px-12 py-6 rounded-full text-lg font-light shadow-[0_20px_50px_rgba(190,24,93,0.2)] hover:bg-pink-800 transition-all w-full md:w-auto flex items-center justify-center gap-6 border-4 border-white/80 group backdrop-blur-sm"
+                className="relative bg-gradient-to-r from-pink-950 to-rose-950 hover:from-pink-900 hover:to-rose-900 text-white px-16 py-7 rounded-full text-sm font-medium tracking-[0.3em] shadow-[0_25px_60px_rgba(28,25,23,0.15)] hover:shadow-[0_35px_80px_rgba(190,24,93,0.25)] transition-all w-full md:w-auto flex items-center justify-center gap-8 border border-white/10 group overflow-hidden"
               >
-                <span className="tracking-[0.2em] font-serif uppercase">ORDER</span>
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:rotate-180 transition-transform duration-700 border border-white/20">
-                  <Plus className="h-5 w-5" strokeWidth={1.5} />
+                {/* Subtle gold shimmering light reflection */}
+                <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-120%] group-hover:translate-x-[250%] transition-transform duration-1000 ease-out" />
+                
+                <span className="font-serif uppercase lg:text-base tracking-[0.25em]">Begin Bespoke Commission</span>
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:rotate-180 transition-transform duration-1000 border border-white/20">
+                  <Plus className="h-5 w-5 text-pink-200" strokeWidth={1} />
                 </div>
               </motion.button>
             </div>
+
+            {/* Tracking & Active Commissions Section */}
+            <div className="mt-28 pt-16 border-t border-pink-100/30 text-center">
+              <div className="max-w-xl mx-auto space-y-8">
+                <div className="space-y-3">
+                  <p className="small-caps text-[9px] text-pink-400 tracking-[0.4em] uppercase font-bold">Trace Archivals</p>
+                  <h3 className="text-3xl font-serif text-pink-950 font-light tracking-tight text-center">Commission Tracking</h3>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto font-light leading-relaxed text-center">
+                    Check the preparation status of your custom artisanal creations.
+                  </p>
+                </div>
+
+                {/* Track Search Bar */}
+                <form onSubmit={handleTrackOrder} className="relative mt-6 max-w-md mx-auto">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Enter Order ID (e.g. 8f2b... or full ID)"
+                      value={searchOrderId}
+                      onChange={(e) => {
+                        setSearchOrderId(e.target.value);
+                        setSearchError('');
+                      }}
+                      className="w-full pl-6 pr-14 py-4 bg-white/40 backdrop-blur-md rounded-full border border-pink-100 text-xs md:text-sm text-pink-950 placeholder-slate-400 outline-none focus:border-pink-500 focus:bg-white/60 transition-all font-mono tracking-wider shadow-sm"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSearching}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-pink-700 hover:bg-pink-800 text-white flex items-center justify-center transition-colors active:scale-95 disabled:opacity-50"
+                    >
+                      {isSearching ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {searchError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[10px] text-rose-500 mt-3 font-medium text-left px-4"
+                    >
+                      {searchError}
+                    </motion.p>
+                  )}
+                </form>
+
+                {/* Local Commissions List if present */}
+                {localOrders.length > 0 && (
+                  <div className="pt-8 text-left space-y-4 max-w-lg mx-auto">
+                    <p className="text-[9px] font-mono font-bold text-pink-400 uppercase tracking-widest text-center">Your Recent Commissions</p>
+                    <div className="space-y-3">
+                      {localOrders.slice(0, 5).map((order) => {
+                        const isCompleted = order.status === 'Completed';
+                        const isReady = order.status === 'Ready';
+                        const isBaking = order.status === 'Baking';
+                        
+                        return (
+                          <div
+                            key={order.id}
+                            onClick={() => navigate(`/order/${order.id}`)}
+                            className="bg-white/40 hover:bg-white/70 backdrop-blur-sm border border-white/80 p-4 rounded-3xl flex items-center justify-between gap-4 cursor-pointer transition-all hover:translate-x-1 shadow-sm hover:shadow-md group"
+                          >
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="w-10 h-10 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-700 font-serif font-semibold border border-pink-100/50 group-hover:scale-105 transition-transform shrink-0">
+                                {order.category === 'Pastries' ? '🥐' : '🎂'}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono font-bold text-slate-800">
+                                    ORD-{order.id.slice(0, 4).toUpperCase()}
+                                  </span>
+                                  <span className="text-[8px] font-mono text-slate-400">
+                                    {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-serif font-light truncate">
+                                  {order.category} Commission for {order.customerName}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className={`text-[8.5px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                isCompleted ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                isReady ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                isBaking ? 'bg-pink-50 text-pink-700 border border-pink-100' :
+                                'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}>
+                                {order.status}
+                              </span>
+                              <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-pink-600 transition-colors" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Patron Reflections Section */}
+            {feedbacks.length > 0 && (
+              <div className="mt-32 pt-20 border-t border-pink-100/30">
+                <div className="text-center mb-16 space-y-4">
+                  <p className="small-caps text-[9px] text-pink-400 tracking-[0.4em] uppercase font-bold">Patron Journeys</p>
+                  <h3 className="text-4xl font-serif text-pink-950 font-light tracking-tight">Voices of the Atelier</h3>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto font-light leading-relaxed">
+                    Honest impressions from commissions delivered across our clientele.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+                  {feedbacks.map((fb, idx) => (
+                    <motion.div
+                      key={fb.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.8, delay: idx * 0.1 }}
+                      className="bg-white/40 backdrop-blur-sm p-8 border border-white/50 shadow-sm relative group hover:bg-white/60 transition-colors"
+                    >
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <svg 
+                              key={s} 
+                              className={`h-3.5 w-3.5 ${s <= fb.feedbackRating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold tracking-tighter uppercase whitespace-nowrap">ORD-{fb.id.slice(0,4).toUpperCase()}</span>
+                      </div>
+                      
+                      <p className="text-xs text-slate-600 font-serif italic leading-relaxed mb-6">
+                        "{fb.feedbackComment || 'No comment shared'}"
+                      </p>
+                      
+                      <div className="flex items-center gap-3 border-t border-pink-100/20 pt-4 mt-auto">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-pink-950 uppercase tracking-widest truncate">{fb.customerName}</p>
+                          <p className="text-[9px] font-medium text-slate-400 font-mono tracking-tight">{fb.category} Design</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

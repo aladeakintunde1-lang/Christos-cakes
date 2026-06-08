@@ -22,15 +22,50 @@ export const syncWithSupabase = async () => {
 
   // Sync Orders
   try {
-    const { data: orders, error } = await supabase.from('orders').select('*');
+    const { data: remoteOrders, error } = await supabase.from('orders').select('*');
     if (error) throw error;
-    if (orders) {
+    if (remoteOrders) {
+      const localOrders = getOrders();
+      
+      // Find orders that are local only (exist locally but not in remote Supabase yet)
+      const localOnlyOrders = localOrders.filter(
+        local => !remoteOrders.some(remote => remote.id === local.id)
+      );
+
+      // Attempt to background-sync local-only orders back to Supabase
+      for (const localOrder of localOnlyOrders) {
+        try {
+          const { error: insertError } = await supabase.from('orders').insert([localOrder]);
+          if (!insertError) {
+            console.log(`Successfully back-synced order ${localOrder.id} to Supabase`);
+          } else {
+            // If it failed because of a schema mismatch with the 'distance' value, retry without distance
+            if (insertError.message?.includes('column') || insertError.code === '42703') {
+              const { distance, ...orderWithoutDistance } = localOrder;
+              await supabase.from('orders').insert([orderWithoutDistance]);
+            } else {
+              console.warn(`Failed to back-sync order ${localOrder.id}:`, insertError.message);
+            }
+          }
+        } catch (syncErr) {
+          console.error(`Error syncing order ${localOrder.id} to Supabase:`, syncErr);
+        }
+      }
+
+      // Merge remote orders with local-only orders so we do not lose any local submissions
+      const mergedOrders = [...remoteOrders];
+      localOnlyOrders.forEach(local => {
+        if (!mergedOrders.some(m => m.id === local.id)) {
+          mergedOrders.push(local);
+        }
+      });
+
       try {
-        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(mergedOrders));
       } catch (lsError) {
         console.warn('LocalStorage full, orders synced in memory only', lsError);
       }
-      return orders;
+      return mergedOrders;
     }
   } catch (error) {
     console.error('Failed to sync orders:', error);
@@ -115,8 +150,9 @@ export const saveOrder = async (order: Order) => {
     }
     return { success: true };
   } catch (error) {
-    console.error('Supabase saveOrder error:', error);
-    return { success: false, error };
+    console.warn('Supabase saveOrder error (falling back to local storage):', error);
+    // Return success: true so the client can still view their local invoice/receipt
+    return { success: true, localOnly: true, error };
   }
 };
 
@@ -147,6 +183,44 @@ export const updateOrderPrice = async (orderId: string, totalPrice: number, deli
       await supabase.from('orders').update({ totalPrice, deliveryFee }).eq('id', orderId);
     } catch (error) {
       console.error('Supabase updateOrderPrice error:', error);
+    }
+  }
+};
+
+export const updateOrderFeedback = async (
+  orderId: string,
+  feedbackRating: number,
+  feedbackComment: string
+) => {
+  const orders = getOrders();
+  const index = orders.findIndex(o => o.id === orderId);
+  const feedbackCreatedAt = new Date().toISOString();
+  
+  if (index !== -1) {
+    orders[index].feedbackRating = feedbackRating;
+    orders[index].feedbackComment = feedbackComment;
+    orders[index].feedbackCreatedAt = feedbackCreatedAt;
+    
+    try {
+      localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    } catch (error) {
+      console.warn('Failed to save feedback to localStorage:', error);
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          feedbackRating,
+          feedbackComment,
+          feedbackCreatedAt
+        })
+        .eq('id', orderId);
+      if (error) {
+        console.warn('Supabase feedback update failed (safely falls back to local storage):', error.message);
+      }
+    } catch (error) {
+      console.error('Supabase updateOrderFeedback error:', error);
     }
   }
 };

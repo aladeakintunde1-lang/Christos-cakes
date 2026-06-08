@@ -13,7 +13,12 @@ import {
   Info, 
   ClipboardList,
   MapPin,
-  DollarSign
+  DollarSign,
+  RefreshCw,
+  Copy,
+  Download,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -29,6 +34,7 @@ import {
 } from '../utils/storage';
 import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
+import masterWorkflow from '../n8n/master_workflow.json';
 
 const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
@@ -51,6 +57,155 @@ const AdminPortal: React.FC = () => {
       return '';
     }
   });
+  const [localN8nUrl, setLocalN8nUrl] = useState<string>(() => {
+    try { return localStorage.getItem('sweettrack_n8n_url') || ''; } catch { return ''; }
+  });
+  const [localN8nApiKey, setLocalN8nApiKey] = useState<string>(() => {
+    try { return localStorage.getItem('sweettrack_n8n_api_key') || ''; } catch { return ''; }
+  });
+  const [isSyncingWorkflow, setIsSyncingWorkflow] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+
+  const handleCopyWorkflow = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(masterWorkflow, null, 2));
+      setSyncFeedback({ type: 'success', message: '✓ Workflow JSON copied to clipboard!' });
+      setTimeout(() => setSyncFeedback({ type: null, message: '' }), 5000);
+    } catch (err) {
+      setSyncFeedback({ type: 'error', message: 'Failed to copy to clipboard.' });
+    }
+  };
+
+  const handleDownloadWorkflow = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(masterWorkflow, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "christos_cakes_n8n_workflow.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setSyncFeedback({ type: 'success', message: '✓ Workflow JSON file downloaded!' });
+      setTimeout(() => setSyncFeedback({ type: null, message: '' }), 5000);
+    } catch (err) {
+      setSyncFeedback({ type: 'error', message: 'Failed to download file.' });
+    }
+  };
+
+  const handleAutoSync = async () => {
+    if (!localN8nUrl || !localN8nApiKey) {
+      setSyncFeedback({ type: 'error', message: 'Please enter both your n8n Instance URL and API Key.' });
+      return;
+    }
+
+    setIsSyncingWorkflow(true);
+    setSyncFeedback({ type: null, message: '' });
+
+    const cleanedBaseUrl = localN8nUrl.trim().replace(/\/$/, '');
+    
+    try {
+      // 1. Fetch existing workflows from n8n to check if ours is already there
+      const getWorkflowsUrl = `${cleanedBaseUrl}/api/v1/workflows`;
+      console.log('Querying n8n workflows from:', getWorkflowsUrl);
+      
+      const response = await fetch(getWorkflowsUrl, {
+        method: 'GET',
+        headers: {
+          'X-N8N-API-KEY': localN8nApiKey,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to read workflows: ${response.status} ${response.statusText}`);
+      }
+
+      const resData = await response.json();
+      const existingWorkflows = resData.data || [];
+      
+      // Find any workflow with our target name: "Christos Cakes - Full Notification Mode"
+      const existingWf = existingWorkflows.find(
+        (wf: any) => wf.name === masterWorkflow.name || wf.name?.includes("Christos Cakes")
+      );
+
+      if (existingWf) {
+        // 2a. Update the existing workflow (PUT)
+        const updateUrl = `${cleanedBaseUrl}/api/v1/workflows/${existingWf.id}`;
+        console.log('Updating existing workflow:', updateUrl);
+        
+        const updatePayload = {
+          ...masterWorkflow,
+          id: existingWf.id,
+          active: existingWf.active // Keep active status as is
+        };
+
+        const putResponse = await fetch(updateUrl, {
+          method: 'PUT',
+          headers: {
+            'X-N8N-API-KEY': localN8nApiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatePayload)
+        });
+
+        if (!putResponse.ok) {
+          const bodyText = await putResponse.text();
+          throw new Error(`Failed to update workflow: ${putResponse.status}. ${bodyText}`);
+        }
+
+        setSyncFeedback({ 
+          type: 'success', 
+          message: `✓ Success! Updated existing workflow "${existingWf.name}" (ID: ${existingWf.id}) on your n8n instance successfully.` 
+        });
+      } else {
+        // 2b. Create a new workflow (POST)
+        const createUrl = `${cleanedBaseUrl}/api/v1/workflows`;
+        console.log('Creating new workflow:', createUrl);
+
+        const postResponse = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            'X-N8N-API-KEY': localN8nApiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(masterWorkflow)
+        });
+
+        if (!postResponse.ok) {
+          const bodyText = await postResponse.text();
+          throw new Error(`Failed to create workflow: ${postResponse.status}. ${bodyText}`);
+        }
+
+        const syncResult = await postResponse.json();
+        setSyncFeedback({ 
+          type: 'success', 
+          message: `✓ Success! Created new workflow "${masterWorkflow.name}" (ID: ${syncResult.id}) on your n8n instance successfully!` 
+        });
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      const errorMsg = err.message || '';
+      
+      if (errorMsg.includes('Failed to fetch') || err.name === 'TypeError') {
+        setSyncFeedback({ 
+          type: 'error', 
+          message: 'Direct API sync was blocked by your browser\'s security/CORS policy. This is common due to cross-domain security boundaries in modern browsers. But don\'t worry! We have copied the updated workflow to your clipboard, and you can also download the JSON file below to import it in 2 clicks.' 
+        });
+        // Call copy helper as a seamless fallback
+        try {
+          await navigator.clipboard.writeText(JSON.stringify(masterWorkflow, null, 2));
+        } catch {}
+      } else {
+        setSyncFeedback({ 
+          type: 'error', 
+          message: `Sync failed: ${errorMsg}` 
+        });
+      }
+    } finally {
+      setIsSyncingWorkflow(false);
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -454,7 +609,7 @@ const AdminPortal: React.FC = () => {
                   <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
                     <ExternalLink className="h-5 w-5 text-pink-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 font-serif">Automation (n8n)</h3>
+                  <h3 className="text-xl font-bold text-slate-900 font-serif">Automation & n8n Sync</h3>
                 </div>
                 
                 <div className="space-y-6">
@@ -479,11 +634,78 @@ const AdminPortal: React.FC = () => {
                       <p className="mt-3 text-[9px] text-rose-500 font-bold uppercase tracking-widest animate-pulse">⚠ Webhook URL Missing</p>
                     )}
                   </div>
-                  
+
+                  <div className="border-t border-slate-200/60 pt-6">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n Instance URL</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://your-n8n-instance.com"
+                      className="w-full p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
+                      value={localN8nUrl}
+                      onChange={e => {
+                        setLocalN8nUrl(e.target.value);
+                        localStorage.setItem('sweettrack_n8n_url', e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n API Key (for automatic sync)</label>
+                    <input 
+                      type="password" 
+                      placeholder="Enter your X-N8N-API-KEY"
+                      className="w-full p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
+                      value={localN8nApiKey}
+                      onChange={e => {
+                        setLocalN8nApiKey(e.target.value);
+                        localStorage.setItem('sweettrack_n8n_api_key', e.target.value);
+                      }}
+                    />
+                    <p className="mt-2 text-[10px] text-slate-400 font-medium">To generate a key, go to n8n Settings &gt; API keys.</p>
+                  </div>
+
+                  {syncFeedback.message && (
+                    <div className={`p-5 rounded-2xl border flex gap-4 text-xs font-medium leading-relaxed ${syncFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-100' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                      {syncFeedback.type === 'success' ? (
+                        <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                      )}
+                      <div>{syncFeedback.message}</div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3 pt-4">
+                    <button
+                      onClick={handleAutoSync}
+                      disabled={isSyncingWorkflow}
+                      className="w-full bg-pink-600 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg hover:shadow-pink-100 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isSyncingWorkflow ? 'animate-spin' : ''}`} />
+                      {isSyncingWorkflow ? 'Syncing with n8n...' : 'Sync Workflow to n8n Automatically'}
+                    </button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleCopyWorkflow}
+                        className="bg-white border border-slate-200 text-slate-600 hover:text-pink-650 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy JSON to Clipboard
+                      </button>
+                      <button
+                        onClick={handleDownloadWorkflow}
+                        className="bg-white border border-slate-200 text-slate-600 hover:text-pink-650 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download Workflow JSON
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      This URL connects your studio to n8n for automated order notifications and client emails. 
-                      You can find the workflow template in <code className="bg-slate-100 px-1 rounded text-pink-600">n8n_workflow.json</code> in the project root.
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                      This updates your n8n workflows with the newest custom experience details. It matches the workflow <code className="bg-slate-50 px-2 py-0.5 rounded text-pink-500 font-mono font-bold">Christos Cakes - Full Notification Mode</code> or other Christos workflow configurations and pushes updates instantly.
                     </p>
                   </div>
                 </div>
@@ -507,14 +729,14 @@ const AdminPortal: React.FC = () => {
 
       {viewMode === 'Orders' && (
         <div className="space-y-8 animate-slideIn">
-          {orders.map(order => (
+           {orders.map(order => (
             <div key={order.id} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-              <div className={`h-3 w-full ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600' : 'bg-indigo-600'}`} />
+              <div className={`h-3 w-full ${order.fulfillmentType === 'Delivery' ? 'bg-pink-600' : 'bg-stone-800'}`} />
               <div className="p-8 lg:p-12">
                 <div className="flex flex-col lg:flex-row justify-between items-start mb-8 gap-10">
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-4 mb-6">
-                      <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-full tracking-widest ${order.fulfillmentType === 'Delivery' ? 'bg-pink-50 text-pink-700 border border-pink-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'}`}>
+                      <span className={`text-[10px] font-mono font-bold uppercase px-4 py-2 rounded-full tracking-widest ${order.fulfillmentType === 'Delivery' ? 'bg-pink-50 text-pink-700 border border-pink-100' : 'bg-stone-50 text-stone-700 border border-stone-200'}`}>
                         {order.fulfillmentType}
                       </span>
                       <span className="text-[10px] font-black uppercase px-4 py-2 rounded-full bg-slate-50 text-slate-500 border border-slate-100 tracking-widest">
@@ -679,6 +901,40 @@ const AdminPortal: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Customer Feedback Card */}
+                {order.feedbackRating && (
+                  <div className="bg-pink-50/40 border border-pink-100/50 rounded-[2rem] p-6 mb-8 flex flex-col md:flex-row gap-6 items-start animate-fadeIn justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <span key={s}>
+                              <svg className={`h-4 w-4 ${s <= (order.feedbackRating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-pink-700 bg-pink-100/60 px-2.5 py-0.5 rounded-md uppercase">
+                          Atelier Reflection
+                        </span>
+                      </div>
+                      
+                      {order.feedbackComment ? (
+                        <p className="text-sm font-light text-slate-700 italic font-serif leading-relaxed">
+                          "{order.feedbackComment}"
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">Rated {order.feedbackRating} stars with no written feedback.</p>
+                      )}
+                    </div>
+                    
+                    <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap self-end md:self-center">
+                      {order.feedbackCreatedAt ? new Date(order.feedbackCreatedAt).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-3">
                   {(['Pending', 'Baking', 'Ready', 'Completed'] as OrderStatus[]).map(s => (

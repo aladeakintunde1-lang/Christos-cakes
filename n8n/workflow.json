@@ -37,6 +37,25 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "NEW_FEEDBACK"
+            }
+          ]
+        }
+      },
+      "name": "Is New Feedback?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        350,
+        450
+      ]
+    },
+    {
+      "parameters": {
         "from": "whatsapp:+14155238886",
         "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
         "message": "🎂 *New Bespoke Order Received!*\n\n*Customer:* {{ $json.customerName }}\n*Size:* {{ $json.size }}\n*Flavor:* {{ $json.flavor }}\n*Date:* {{ $json.deliveryDate }}\n*Message:* {{ $json.messageOnCake }}\n\nView in Admin Portal: {{ $json.appUrl }}/#/admin"
@@ -46,7 +65,7 @@
       "typeVersion": 1,
       "position": [
         600,
-        450
+        350
       ]
     },
     {
@@ -61,6 +80,20 @@
       "position": [
         600,
         150
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "whatsapp:+YOUR_ADMIN_PHONE_NUMBER",
+        "message": "💝 *New Atelier Experience Reflection!*\n\n*Customer:* {{ $json.customerName }}\n*Rating:* {{ $json.feedbackRating }}/5 Stars\n*Comment:* \"{{ $json.feedbackComment || 'No comment written' }}\"\n\nCommission Reference: ORD-{{ $json.id.slice(0,4).toUpperCase() }}\nView Atelier details: {{ $json.appUrl }}"
+      },
+      "name": "Send Admin Feedback (WhatsApp)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        600,
+        500
       ]
     },
     {
@@ -191,6 +224,24 @@
         ],
         [
           {
+            "node": "Is New Feedback?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Feedback?": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Feedback (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Notify Admin (WhatsApp)",
             "type": "main",
             "index": 0
@@ -210,6 +261,17 @@
       ]
     },
     "Notify Admin (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Admin Feedback (WhatsApp)": {
       "main": [
         [
           {

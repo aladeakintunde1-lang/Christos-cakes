@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, ChevronLeft, Lock } from 'lucide-react';
-import { getOrders, getSettings, syncWithSupabase } from '../utils/storage';
+import { Printer, ChevronLeft, Lock, Star, Heart, Check, MessageSquare } from 'lucide-react';
+import { getOrders, getSettings, syncWithSupabase, updateOrderFeedback } from '../utils/storage';
 import { supabase } from '../utils/supabase';
 import { Order } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL, PASTRIES } from '../constants';
+
+const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
 const OrderView: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -13,6 +15,12 @@ const OrderView: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  // Customer Feedback States
+  const [feedbackRating, setFeedbackRating] = useState<number>(5);
+  const [feedbackHovered, setFeedbackHovered] = useState<number | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState<string>('');
+  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -73,6 +81,53 @@ const OrderView: React.FC = () => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+  };
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderId) return;
+    setIsFeedbackSubmitting(true);
+    await updateOrderFeedback(orderId, feedbackRating, feedbackComment);
+    
+    // Reload order to update view immediately
+    const orders = getOrders();
+    const foundOrder = orders.find(o => o.id === orderId);
+    if (foundOrder) {
+      setOrder({ ...foundOrder });
+
+      // Trigger n8n automation for feedback notification
+      const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || (() => {
+        try {
+          return localStorage.getItem('sweettrack_webhook_url');
+        } catch {
+          return null;
+        }
+      })();
+
+      if (activeWebhookUrl) {
+        try {
+          // Send notification payload to custom Webhook
+          await fetch(activeWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'NEW_FEEDBACK',
+              appUrl: window.location.origin + window.location.pathname,
+              id: foundOrder.id,
+              customerName: foundOrder.customerName,
+              category: foundOrder.category,
+              feedbackRating,
+              feedbackComment,
+              deliveryDate: foundOrder.deliveryDate,
+              totalPrice: foundOrder.totalPrice
+            })
+          });
+        } catch (webhookErr) {
+          console.warn('Feedback webhook notification failed:', webhookErr);
+        }
+      }
+    }
+    setIsFeedbackSubmitting(false);
   };
 
   if (isAdmin === null && !order) {
@@ -383,6 +438,125 @@ const OrderView: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* CLIENT FEEDBACK PORTION */}
+        {order.status === 'Completed' && (
+          <div className="mt-24 pt-16 border-t border-slate-100 print:hidden">
+            <div className="bg-stone-50/50 border border-stone-100 p-10 md:p-14 rounded-none shadow-sm relative overflow-hidden text-left">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-100/10 rounded-full blur-2xl -z-10 translate-y-[-20%] translate-x-[20%]" />
+              
+              <div className="max-w-2xl mx-auto text-center">
+                <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Heart className="h-5 w-5 text-luxury-accent fill-luxury-accent/10" strokeWidth={1.5} />
+                </div>
+                
+                {order.feedbackRating ? (
+                  /* Feedback Already Received View */
+                  <div className="space-y-6">
+                    <h3 className="text-2xl font-light text-luxury-ink font-serif tracking-tight">Atelier Experience Received</h3>
+                    <p className="text-xs text-luxury-muted max-w-md mx-auto font-light leading-relaxed">
+                      Thank you for sharing your bespoke experience! Your feedback has been registered with our team to help preserve the finest standards of pastry craftsmanship.
+                    </p>
+                    
+                    <div className="bg-white p-8 border border-stone-100/80 shadow-sm rounded-none inline-block w-full max-w-lg mt-4 text-left">
+                      <div className="flex justify-between items-center mb-6">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star 
+                              key={s} 
+                              className={`h-4 w-4 ${s <= (order.feedbackRating || 0) ? 'text-amber-500 fill-amber-500' : 'text-stone-200'}`} 
+                              strokeWidth={1.5} 
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[9px] font-mono text-luxury-muted tracking-widest uppercase bg-stone-150 px-3 py-1">
+                          {order.feedbackCreatedAt ? new Date(order.feedbackCreatedAt).toLocaleDateString() : 'Awaiting Date'}
+                        </span>
+                      </div>
+                      
+                      {order.feedbackComment ? (
+                        <div className="relative">
+                          <span className="text-4xl text-pink-200 font-serif absolute -top-4 -left-2 select-none leading-none">“</span>
+                          <p className="text-sm text-luxury-muted italic leading-relaxed pl-4 relative z-10 font-serif">
+                            {order.feedbackComment}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-stone-400 italic">No custom reflection written.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Feedback Submission View */
+                  <form onSubmit={handleSubmitFeedback} className="space-y-8">
+                    <div className="space-y-3 text-center">
+                      <p className="small-caps text-[9px] text-luxury-muted tracking-[0.3em] uppercase">Bespoke Recollections</p>
+                      <h3 className="text-3xl font-light text-luxury-ink font-serif tracking-tight">How was your Atelier experience?</h3>
+                      <p className="text-xs text-luxury-muted max-w-md mx-auto font-light leading-relaxed">
+                        We invite you to share your feedback. Each nuance helps us refine our recipes, delivery, and bespoke detail for future commissions.
+                      </p>
+                    </div>
+
+                    {/* Star Selector */}
+                    <div className="flex flex-col items-center gap-3 py-2 text-center">
+                      <div className="flex gap-1.5 justify-center">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <button
+                            type="button"
+                            key={s}
+                            onClick={() => setFeedbackRating(s)}
+                            onMouseEnter={() => setFeedbackHovered(s)}
+                            onMouseLeave={() => setFeedbackHovered(null)}
+                            className="p-1 transition-transform active:scale-95 duration-100"
+                          >
+                            <Star 
+                              className={`h-7 w-7 transition-colors ${
+                                s <= (feedbackHovered !== null ? feedbackHovered : feedbackRating) 
+                                  ? 'text-amber-400 fill-amber-400' 
+                                  : 'text-stone-300'
+                              }`} 
+                              strokeWidth={1.5} 
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-luxury-accent font-semibold h-4">
+                        {
+                          (feedbackHovered !== null ? feedbackHovered : feedbackRating) === 5 ? 'Exquisite (5/5)' :
+                          (feedbackHovered !== null ? feedbackHovered : feedbackRating) === 4 ? 'Beautiful (4/5)' :
+                          (feedbackHovered !== null ? feedbackHovered : feedbackRating) === 3 ? 'Satisfactory (3/5)' :
+                          (feedbackHovered !== null ? feedbackHovered : feedbackRating) === 2 ? 'Needs Attention (2/5)' : 'Unsatisfactory (1/5)'
+                        }
+                      </span>
+                    </div>
+
+                    {/* Comment Field */}
+                    <div className="space-y-2 text-left max-w-lg mx-auto">
+                      <label className="block text-[9px] font-mono font-medium text-luxury-muted uppercase tracking-widest">Your Experience Reflection (Optional)</label>
+                      <textarea
+                        rows={4}
+                        placeholder="Please tell us about the product craftsmanship, taste, appearance, and your fulfillment experience..."
+                        value={feedbackComment}
+                        onChange={(e) => setFeedbackComment(e.target.value)}
+                        className="w-full p-5 bg-white border border-stone-200 text-sm font-light text-luxury-ink placeholder:text-stone-300 outline-none focus:border-luxury-accent transition-colors leading-relaxed shadow-sm resize-none rounded-none"
+                      />
+                    </div>
+
+                    <div className="pt-2 text-center">
+                      <button
+                        type="submit"
+                        disabled={isFeedbackSubmitting}
+                        className="px-12 py-4 bg-luxury-ink hover:bg-luxury-accent text-white font-serif uppercase tracking-[0.25em] text-[10px] transition-all duration-300 active:scale-[0.98] disabled:opacity-40"
+                      >
+                        {isFeedbackSubmitting ? 'Recording Reflection...' : 'Record Impression'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* FOOTER ACTIONS */}
         <div className="mt-24 pt-16 border-t border-slate-100 flex flex-col items-center">

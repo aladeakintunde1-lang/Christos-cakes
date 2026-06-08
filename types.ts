@@ -29,6 +29,9 @@ export interface Order {
   distance?: number;
   status: OrderStatus;
   createdAt: string;
+  feedbackRating?: number;
+  feedbackComment?: string;
+  feedbackCreatedAt?: string;
 }
 
 export type ImageDisplayMode = 'original' | 'square';

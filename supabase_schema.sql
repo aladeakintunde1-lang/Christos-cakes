@@ -25,8 +25,16 @@ CREATE TABLE IF NOT EXISTS orders (
   totalPrice NUMERIC NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'Pending',
   distance NUMERIC,
+  feedbackRating INTEGER,
+  feedbackComment TEXT,
+  feedbackCreatedAt TEXT,
   createdAt TEXT NOT NULL
 );
+
+-- Note: To update an existing database with feedback support, run these:
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS "feedbackRating" INTEGER;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS "feedbackComment" TEXT;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS "feedbackCreatedAt" TEXT;
 
 -- Gallery Table
 CREATE TABLE IF NOT EXISTS gallery (

@@ -3,6 +3,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", monospace;
   
   --color-luxury-bg: #fffafa;
   --color-luxury-ink: #1c1917;

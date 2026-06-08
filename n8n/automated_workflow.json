@@ -27,6 +27,10 @@
             {
               "value1": "={{$json.type}}",
               "value2": "SEND_ORDER"
+            },
+            {
+              "value1": "={{$json.type}}",
+              "value2": "NEW_FEEDBACK"
             }
           ]
         }
@@ -53,7 +57,7 @@
       "typeVersion": 1,
       "position": [
         840,
-        200
+        150
       ]
     },
     {
@@ -69,7 +73,23 @@
       "typeVersion": 1,
       "position": [
         840,
-        400
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "feedback@christoscakes.co.uk",
+        "toEmail": "aladeakintunde1@gmail.com",
+        "subject": "=💝 Atelier Experience Reflection: {{$json.customerName}} ({{$json.feedbackRating}}/5 Stars)",
+        "html": "=<div style=\"font-family: serif; color: #1c1917; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #fdf2f8; border-radius: 40px; background-color: #fffafa;\">\n  <h1 style=\"color: #be185d; text-align: center; font-weight: 300; font-size: 32px;\">Atelier Reflection</h1>\n  <p style=\"text-align: center; font-style: italic; color: #78716c;\">Bespoke recollections and patron impressions.</p>\n  <hr style=\"border: 0; border-top: 1px solid #fce7f3; margin: 30px 0;\" />\n  <p>Hello Christianah,</p>\n  <p>A client has registered their experience reflection for <strong>{{$json.customerName}}</strong>'s custom commission:</p>\n  <div style=\"background-color: white; padding: 25px; border-radius: 20px; border: 1px solid #fbcfe8; margin: 30px 0; text-align: left;\">\n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Atelier Rating</p>\n    <p style=\"margin: 5px 0 10px; font-size: 24px; color: #fbbf24;\">\n      {{$json.feedbackRating}}/5 Stars\n    </p>\n    \n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Reflection Commentary</p>\n    <p style=\"margin: 5px 0 20px; font-style: italic; color: #444; font-size: 15px;\">\"{{$json.feedbackComment || 'No comment shared.'}}\"</p>\n    \n    <p style=\"margin: 0; font-size: 12px; color: #78716c; text-transform: uppercase; letter-spacing: 2px;\">Commission Reference</p>\n    <p style=\"margin: 5px 0 0; font-family: monospace; font-size: 13px;\">ORD-{{$json.id.slice(0, 4).toUpperCase()}} ({{$json.category}} Package)</p>\n  </div>\n  <p style=\"text-align: center; margin-top: 40px;\">\n    <a href=\"{{$json.appUrl}}\" style=\"background-color: #be185d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 50px; font-weight: bold; font-family: sans-serif; font-size: 14px; letter-spacing: 2px;\">VIEW IN ATELIER PORTAL</a>\n  </p>\n  <p style=\"color: #78716c; font-size: 12px; text-align: center; margin-top: 40px;\">© 2024 Christos Cakes Boutique</p>\n</div>"
+      },
+      "id": "admin-feedback-notify",
+      "name": "Admin Feedback Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        840,
+        450
       ]
     }
   ],
@@ -97,6 +117,13 @@
         [
           {
             "node": "client-confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "admin-feedback-notify",
             "type": "main",
             "index": 0
           }

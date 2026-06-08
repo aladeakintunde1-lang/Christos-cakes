@@ -309,35 +309,59 @@ const OrderForm: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-pink-100/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 -z-10" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-rose-100/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 -z-10" />
 
-        <div className="flex justify-between items-center mb-16 px-4">
+      <div className="flex justify-between items-center mb-16 px-4">
         <button 
           onClick={() => setStep(prev => Math.max(1, prev - 1))} 
-          className={`text-slate-300 p-4 hover:bg-pink-50 hover:text-pink-600 rounded-full transition-all group ${step === 1 ? 'invisible' : ''}`}
+          className={`text-slate-400 p-3 hover:bg-pink-50 hover:text-pink-800 rounded-full transition-all group ${step === 1 ? 'invisible' : ''}`}
         >
-          <ChevronLeft className="h-6 w-6 group-hover:-translate-x-1 transition-transform" strokeWidth={1.5} />
+          <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" strokeWidth={1.5} />
         </button>
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-3">
-            <span className="text-[9px] font-black text-pink-300 uppercase tracking-[0.8em]">Phase</span>
-            <span className="text-[12px] font-serif italic text-pink-900 leading-none">{step} of 5</span>
+        
+        <div className="flex flex-col items-center gap-4">
+          {/* Desktop Stepper */}
+          <div className="hidden md:flex items-center gap-4 text-[10px] font-mono tracking-[0.25em] text-slate-400 uppercase font-medium">
+            {[
+              { id: 1, label: 'Selection' },
+              { id: 2, label: 'Logistics' },
+              { id: 3, label: 'Design' },
+              { id: 4, label: 'Pastries' },
+              { id: 5, label: 'Review' }
+            ].map((s, idx) => (
+              <React.Fragment key={s.id}>
+                {idx > 0 && <span className="text-pink-100 font-light">|</span>}
+                <span className={`transition-colors duration-500 ${step === s.id ? 'text-pink-800 font-bold' : step > s.id ? 'text-pink-400' : 'text-slate-300'}`}>
+                  0{s.id} {s.label}
+                </span>
+              </React.Fragment>
+            ))}
           </div>
-          <div className="flex gap-2">
+
+          {/* Mobile Stepper */}
+          <div className="md:hidden flex items-center gap-2">
+            <span className="text-[10px] font-mono tracking-[0.3em] uppercase text-pink-400">Atelier Commission</span>
+            <span className="text-[11px] font-mono font-bold text-pink-950 px-2 py-0.5 bg-pink-100/50 rounded-md">
+              0{step} / 05
+            </span>
+          </div>
+          
+          <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((i) => (
               <div 
                 key={i}
-                className={`h-[1.5px] w-10 rounded-full transition-all duration-1000 ${
-                  step === i ? 'bg-pink-600 w-16' : 
-                  step > i ? 'bg-pink-200' : 'bg-slate-100'
+                className={`h-[2px] transition-all duration-1000 ${
+                  step === i ? 'bg-gradient-to-r from-pink-600 to-rose-600 w-12' : 
+                  step > i ? 'bg-pink-200 w-6' : 'bg-slate-100 w-6'
                 }`} 
               />
             ))}
           </div>
         </div>
+
         <button 
           onClick={() => navigate('/')} 
-          className="text-slate-300 p-4 hover:bg-pink-50 hover:text-pink-600 rounded-full transition-all group"
+          className="text-slate-400 p-3 hover:bg-pink-50 hover:text-pink-800 rounded-full transition-all group"
         >
-          <X className="h-6 w-6 group-hover:rotate-90 transition-transform" strokeWidth={1.5} />
+          <X className="h-5 w-5 group-hover:rotate-90 transition-transform" strokeWidth={1.5} />
         </button>
       </div>
 
@@ -968,22 +992,22 @@ const OrderForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-pink-50/30 p-12 rounded-[3rem] text-center border border-pink-100/50">
-              <p className="text-[11px] font-bold text-pink-400 mb-4 uppercase tracking-[0.5em]">Final Quote</p>
+            <div className="bg-gradient-to-br from-pink-950 to-rose-950 p-12 rounded-[3rem] text-center border border-white/10 shadow-[0_30px_70px_rgba(28,25,23,0.12)]">
+              <p className="text-[10px] font-mono font-bold text-pink-300 mb-6 uppercase tracking-[0.5em]">Bespoke Order Estimate</p>
               {order.category === 'Pastries' ? (
                 <>
-                  <p className="text-4xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)}</p>
-                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">Plus any applicable delivery fees</p>
+                  <p className="text-5xl font-mono font-medium text-white tracking-tight">£{(calculatePastryTotal() || 0).toFixed(2)}</p>
+                  <p className="text-[9px] font-mono text-pink-200/60 mt-6 tracking-widest uppercase">Subject to logistics & white-glove delivery fee</p>
                 </>
               ) : order.category === 'Both' ? (
                 <>
-                  <p className="text-4xl font-serif text-pink-950 italic">£{(calculatePastryTotal() || 0).toFixed(2)} + Cake Quote</p>
-                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you with the full bespoke total</p>
+                  <p className="text-5xl font-mono font-medium text-white tracking-tight">£{(calculatePastryTotal() || 0).toFixed(2)}<span className="text-xl font-light text-pink-300 font-serif lowercase"> + cake design quote</span></p>
+                  <p className="text-[9px] font-mono text-pink-200/60 mt-6 tracking-widest uppercase">Our master pâtissier will consult on design pricing</p>
                 </>
               ) : (
                 <>
-                  <p className="text-4xl font-serif text-pink-950 italic">Awaiting Atelier Review</p>
-                  <p className="text-[10px] text-slate-400 mt-6 font-medium tracking-widest uppercase">We will contact you within 24 hours</p>
+                  <p className="text-3xl font-serif text-white italic font-light tracking-tight leading-tight">Awaiting Atelier Consultation</p>
+                  <p className="text-[9px] font-mono text-pink-200/60 mt-6 tracking-widest uppercase">Curated calculation within 24 hours</p>
                 </>
               )}
             </div>
