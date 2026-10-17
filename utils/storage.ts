@@ -1,6 +1,7 @@
 
 import { Order, GalleryImage, OwnerProfile } from '../types';
 import { supabase } from './supabase';
+import { syncAutomationUpdate } from '../services/automation';
 import { 
   BANK_DETAILS, 
   PICKUP_ADDRESS, 
@@ -188,10 +189,24 @@ export const saveOrder = async (order: Order) => {
       
       throw error;
     }
+    // Automatically synchronize new order to Make.com
+    syncAutomationUpdate({
+      event: 'order.created',
+      type: 'NEW_ORDER',
+      order
+    }).catch(err => console.warn('Make.com auto-sync failed for new order:', err));
+
     return { success: true };
   } catch (error) {
     console.warn('Supabase saveOrder error (falling back to local storage):', error);
-    // Return success: true so the client can still view their local invoice/receipt
+    // Still trigger automation sync even if offline/local-only fallback
+    syncAutomationUpdate({
+      event: 'order.created',
+      type: 'NEW_ORDER',
+      order,
+      extra: { offlineMode: true }
+    }).catch(err => console.warn('Make.com auto-sync failed for offline order:', err));
+
     return { success: true, localOnly: true, error };
   }
 };
@@ -200,6 +215,7 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
   const orders = getOrders();
   const index = orders.findIndex(o => o.id === orderId);
   if (index !== -1) {
+    const previousStatus = orders[index].status;
     orders[index].status = status;
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     
@@ -208,6 +224,15 @@ export const updateOrderStatus = async (orderId: string, status: Order['status']
     } catch (error) {
       console.error('Supabase updateOrderStatus error:', error);
     }
+
+    // Automatically synchronize status update to Make.com
+    syncAutomationUpdate({
+      event: 'order.status_updated',
+      type: 'STATUS_UPDATED',
+      orderId,
+      order: orders[index],
+      previousStatus
+    }).catch(err => console.warn('Make.com auto-sync failed for status update:', err));
   }
 };
 
@@ -224,6 +249,15 @@ export const updateOrderPrice = async (orderId: string, totalPrice: number, deli
     } catch (error) {
       console.error('Supabase updateOrderPrice error:', error);
     }
+
+    // Automatically synchronize quote/price update to Make.com
+    syncAutomationUpdate({
+      event: 'order.quote_updated',
+      type: 'QUOTE_UPDATED',
+      orderId,
+      order: orders[index],
+      extra: { totalPrice, deliveryFee }
+    }).catch(err => console.warn('Make.com auto-sync failed for price update:', err));
   }
 };
 
@@ -262,6 +296,39 @@ export const updateOrderFeedback = async (
     } catch (error) {
       console.error('Supabase updateOrderFeedback error:', error);
     }
+
+    // Automatically synchronize client review/feedback to Make.com
+    syncAutomationUpdate({
+      event: 'feedback.submitted',
+      type: 'NEW_FEEDBACK',
+      orderId,
+      order: orders[index],
+      extra: { feedbackRating, feedbackComment, feedbackCreatedAt }
+    }).catch(err => console.warn('Make.com auto-sync failed for feedback:', err));
+  }
+};
+
+export const updateOrderDetails = async (orderId: string, updates: Partial<Order>) => {
+  const orders = getOrders();
+  const index = orders.findIndex(o => o.id === orderId);
+  if (index !== -1) {
+    orders[index] = { ...orders[index], ...updates };
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    
+    try {
+      await supabase.from('orders').update(updates).eq('id', orderId);
+    } catch (e) {
+      console.error('Supabase updateOrderDetails error:', e);
+    }
+
+    // Automatically synchronize any arbitrary order update to Make.com
+    syncAutomationUpdate({
+      event: 'order.updated',
+      type: 'ORDER_UPDATED',
+      orderId,
+      order: orders[index],
+      extra: updates
+    }).catch(err => console.warn('Make.com auto-sync failed for order details:', err));
   }
 };
 

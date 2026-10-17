@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || ""),
         'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || ""),
         'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ""),
+        'process.env.VITE_MAKE_WEBHOOK_URL': JSON.stringify(env.VITE_MAKE_WEBHOOK_URL || process.env.VITE_MAKE_WEBHOOK_URL || ""),
         'process.env.VITE_N8N_WEBHOOK_URL': JSON.stringify(env.VITE_N8N_WEBHOOK_URL || process.env.VITE_N8N_WEBHOOK_URL || ""),
       },
       resolve: {

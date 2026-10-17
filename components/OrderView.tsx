@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ChevronLeft, Lock, Star, Heart, Check, MessageSquare } from 'lucide-react';
 import { getOrders, getSettings, syncWithSupabase, updateOrderFeedback, getOwnerSettings } from '../utils/storage';
 import { supabase } from '../utils/supabase';
+import { getMakeWebhookUrl } from '../services/automation';
 import { Order, OwnerProfile } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL, PASTRIES } from '../constants';
 
@@ -99,8 +100,8 @@ const OrderView: React.FC = () => {
     if (foundOrder) {
       setOrder({ ...foundOrder });
 
-      // Trigger n8n automation for feedback notification
-      const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || (() => {
+      // Trigger Make.com / automation for feedback notification
+      const activeWebhookUrl = getMakeWebhookUrl() || N8N_WEBHOOK_URL_ENV || (() => {
         try {
           return localStorage.getItem('sweettrack_webhook_url');
         } catch {

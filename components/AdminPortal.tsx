@@ -32,7 +32,10 @@ import {
   EyeOff,
   Sparkles,
   CheckCircle2,
-  Save
+  Save,
+  Zap,
+  Activity,
+  Check
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -48,6 +51,17 @@ import {
   getOwnerSettings,
   saveOwnerSettings
 } from '../utils/storage';
+import {
+  getMakeWebhookUrl,
+  setMakeWebhookUrl,
+  isMakeAutoSyncEnabled,
+  setMakeAutoSyncEnabled,
+  getLastSyncStatus,
+  testMakeWebhook,
+  syncAutomationUpdate,
+  SyncResult
+} from '../services/automation';
+import makeBlueprint from '../make/christos_cakes_make_blueprint.json';
 import { 
   getSupabaseUrl, 
   getSupabaseAnonKey, 
@@ -91,6 +105,107 @@ const AdminPortal: React.FC = () => {
   });
   const [isSyncingWorkflow, setIsSyncingWorkflow] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+
+  // Make.com Automation Suite State
+  const [localMakeWebhookUrl, setLocalMakeWebhookUrl] = useState<string>(getMakeWebhookUrl());
+  const [isMakeAutoSync, setIsMakeAutoSync] = useState<boolean>(isMakeAutoSyncEnabled());
+  const [isTestingMake, setIsTestingMake] = useState<boolean>(false);
+  const [isBulkSyncing, setIsBulkSyncing] = useState<boolean>(false);
+  const [makeFeedback, setMakeFeedback] = useState<{ type: 'success' | 'error' | null; message: string; latency?: number }>({ type: null, message: '' });
+  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(getLastSyncStatus());
+
+  const handleTestMake = async () => {
+    if (!localMakeWebhookUrl.trim()) {
+      setMakeFeedback({ type: 'error', message: 'Please enter a valid Make.com Webhook URL before testing.' });
+      return;
+    }
+    setIsTestingMake(true);
+    setMakeFeedback({ type: null, message: '' });
+    try {
+      const res = await testMakeWebhook(localMakeWebhookUrl);
+      setIsTestingMake(false);
+      if (res.success) {
+        setMakeFeedback({
+          type: 'success',
+          message: res.message,
+          latency: res.latencyMs
+        });
+        setLastSyncResult(getLastSyncStatus());
+      } else {
+        setMakeFeedback({
+          type: 'error',
+          message: res.message,
+          latency: res.latencyMs
+        });
+      }
+    } catch (err: any) {
+      setIsTestingMake(false);
+      setMakeFeedback({
+        type: 'error',
+        message: `Test failed: ${err.message || 'Unknown network error'}`
+      });
+    }
+  };
+
+  const handleDownloadMakeBlueprint = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(makeBlueprint, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "christos_cakes_make_blueprint.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setMakeFeedback({ type: 'success', message: '✓ Make.com scenario blueprint downloaded successfully! Ready to import.' });
+      setTimeout(() => setMakeFeedback({ type: null, message: '' }), 5000);
+    } catch (err) {
+      setMakeFeedback({ type: 'error', message: 'Failed to download Make.com blueprint file.' });
+    }
+  };
+
+  const handleCopyMakeBlueprint = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(makeBlueprint, null, 2));
+      setMakeFeedback({ type: 'success', message: '✓ Make.com blueprint JSON copied to clipboard!' });
+      setTimeout(() => setMakeFeedback({ type: null, message: '' }), 5000);
+    } catch (err) {
+      setMakeFeedback({ type: 'error', message: 'Failed to copy to clipboard.' });
+    }
+  };
+
+  const handleBulkSyncToMake = async () => {
+    if (!localMakeWebhookUrl.trim()) {
+      setMakeFeedback({ type: 'error', message: 'Please enter your Make.com Webhook URL before initiating sync.' });
+      return;
+    }
+    setIsBulkSyncing(true);
+    setMakeFeedback({ type: null, message: '' });
+    let count = 0;
+    try {
+      for (const ord of orders) {
+        await syncAutomationUpdate({
+          event: 'order.synchronized',
+          type: 'ORDER_SYNC',
+          order: ord,
+          orderId: ord.id,
+          force: true
+        });
+        count++;
+      }
+      setMakeFeedback({
+        type: 'success',
+        message: `✓ Successfully synchronized ${count} active orders to Make.com in real time!`
+      });
+      setLastSyncResult(getLastSyncStatus());
+    } catch (err: any) {
+      setMakeFeedback({
+        type: 'error',
+        message: `Bulk sync encountered an issue: ${err.message || 'Error communicating with Make.com'}`
+      });
+    } finally {
+      setIsBulkSyncing(false);
+    }
+  };
 
   // Supabase Configuration & Profile State
   const [localSupabaseUrl, setLocalSupabaseUrl] = useState<string>(getSupabaseUrl());
@@ -1170,104 +1285,267 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
             </div>
           </div>
 
-          {/* 5. AUTOMATION & N8N SYNC */}
+          {/* 5. MAKE.COM AUTOMATION SUITE & REAL-TIME SYNCHRONIZATION */}
           <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-pink-100/80 rounded-2xl flex items-center justify-center text-pink-600 shadow-inner">
-                <ExternalLink className="h-6 w-6" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 via-pink-600 to-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-200">
+                  <Zap className="h-7 w-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-bold text-slate-900 font-serif">Make.com Automation</h3>
+                    <span className="bg-purple-100 text-purple-700 text-[10px] font-black uppercase px-2.5 py-1 rounded-full tracking-wider">
+                      Primary Workflow
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium mt-1">
+                    Synchronize any order creation, status update, bespoke quote, and client review instantly
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 font-serif">Automation & n8n Sync</h3>
-                <p className="text-xs text-slate-400 font-medium">Connects WhatsApp messaging and order notification webhooks</p>
+
+              <div className="flex items-center gap-3">
+                <div className={`px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${
+                  localMakeWebhookUrl 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                    : 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${localMakeWebhookUrl ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  {localMakeWebhookUrl ? 'Connected & Ready' : 'Webhook Required'}
+                </div>
               </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
+              {/* Webhook URL Input */}
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
-                <input 
-                  type="text" 
-                  placeholder="https://your-n8n-instance.com/webhook/..."
-                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
-                  value={localWebhookUrl}
-                  onChange={e => {
-                    setLocalWebhookUrl(e.target.value);
-                    localStorage.setItem('sweettrack_webhook_url', e.target.value);
-                  }}
-                />
-                {N8N_WEBHOOK_URL_ENV && (
-                  <p className="mt-2 text-[9px] text-green-600 font-bold uppercase tracking-widest">✓ Environment Variable Configured</p>
-                )}
-                {!activeWebhookUrl && (
-                  <p className="mt-2 text-[9px] text-rose-500 font-bold uppercase tracking-widest animate-pulse">⚠ Webhook URL Missing</p>
-                )}
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                    Make.com Custom Webhook URL
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">From your Make.com Scenario Webhook module</span>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="url" 
+                    placeholder="https://hook.eu1.make.com/your-custom-webhook-hash"
+                    className="w-full p-4 pr-12 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-purple-400 outline-none text-sm font-mono text-slate-800 transition-all"
+                    value={localMakeWebhookUrl}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setLocalMakeWebhookUrl(val);
+                      setMakeWebhookUrl(val);
+                    }}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Globe className="h-5 w-5 text-slate-400" />
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-400 leading-relaxed">
+                  Every order event (<code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.created</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.status_updated</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.quote_updated</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">feedback.submitted</code>) will be dispatched here in real time.
+                </p>
               </div>
 
-              <div className="border-t border-slate-200/60 pt-6">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n Instance URL</label>
-                <input 
-                  type="text" 
-                  placeholder="https://your-n8n-instance.com"
-                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
-                  value={localN8nUrl}
-                  onChange={e => {
-                    setLocalN8nUrl(e.target.value);
-                    localStorage.setItem('sweettrack_n8n_url', e.target.value);
+              {/* Auto Sync Toggle */}
+              <div className="p-6 rounded-2xl bg-purple-50/50 border border-purple-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-purple-600" />
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Synchronize on Any Update</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-lg">
+                    Automatically triggers Make.com when status changes (Baking, Ready, Delivered), when price/quote is updated, or when feedback is submitted.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isMakeAutoSync;
+                    setIsMakeAutoSync(next);
+                    setMakeAutoSyncEnabled(next);
                   }}
-                />
+                  className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isMakeAutoSync ? 'bg-purple-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      isMakeAutoSync ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n API Key</label>
-                <input 
-                  type="password" 
-                  placeholder="Enter your X-N8N-API-KEY"
-                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
-                  value={localN8nApiKey}
-                  onChange={e => {
-                    setLocalN8nApiKey(e.target.value);
-                    localStorage.setItem('sweettrack_n8n_api_key', e.target.value);
-                  }}
-                />
-              </div>
-
-              {syncFeedback.message && (
-                <div className={`p-5 rounded-2xl border flex gap-4 text-xs font-medium leading-relaxed ${syncFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-100' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
-                  {syncFeedback.type === 'success' ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />}
-                  <div>{syncFeedback.message}</div>
+              {/* Feedback Alert */}
+              {makeFeedback.message && (
+                <div className={`p-5 rounded-2xl border flex gap-4 text-xs font-medium leading-relaxed ${
+                  makeFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
+                }`}>
+                  {makeFeedback.type === 'success' ? (
+                    <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-rose-500 shrink-0" />
+                  )}
+                  <div>
+                    <div className="font-bold">{makeFeedback.message}</div>
+                    {makeFeedback.latency !== undefined && (
+                      <div className="text-[10px] opacity-80 mt-1">Roundtrip Latency: {makeFeedback.latency} ms</div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="flex flex-col gap-3 pt-4">
+              {/* Action Buttons Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button
                   type="button"
-                  onClick={handleAutoSync}
-                  disabled={isSyncingWorkflow}
-                  className="w-full bg-pink-600 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
+                  onClick={handleTestMake}
+                  disabled={isTestingMake || !localMakeWebhookUrl}
+                  className="bg-purple-600 text-white py-4 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-700 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isSyncingWorkflow ? 'animate-spin' : ''}`} />
-                  {isSyncingWorkflow ? 'Syncing with n8n...' : 'Sync Workflow to n8n Automatically'}
+                  <Zap className={`h-4 w-4 ${isTestingMake ? 'animate-spin' : ''}`} />
+                  {isTestingMake ? 'Testing...' : 'Test Webhook'}
                 </button>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCopyWorkflow}
-                    className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy JSON
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDownloadWorkflow}
-                    className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download JSON
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadMakeBlueprint}
+                  className="bg-white border-2 border-purple-200 text-purple-700 hover:bg-purple-50 py-4 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Blueprint
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyMakeBlueprint}
+                  className="bg-white border border-slate-200 text-slate-700 hover:border-purple-300 hover:text-purple-700 py-4 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy Blueprint
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBulkSyncToMake}
+                  disabled={isBulkSyncing || !localMakeWebhookUrl || orders.length === 0}
+                  className="bg-slate-900 text-white py-4 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isBulkSyncing ? 'animate-spin' : ''}`} />
+                  {isBulkSyncing ? 'Syncing...' : `Sync Orders (${orders.length})`}
+                </button>
               </div>
+
+              {/* Last Sync Status Tracker */}
+              {lastSyncResult && (
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${lastSyncResult.success ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Last Synchronized Event</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {lastSyncResult.event || 'Automation Trigger'} {lastSyncResult.orderId ? `(#${lastSyncResult.orderId})` : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right text-[10px] font-mono text-slate-400">
+                    {new Date(lastSyncResult.timestamp).toLocaleTimeString()} · {lastSyncResult.message}
+                  </div>
+                </div>
+              )}
+
+              {/* 3-Step Setup Guide */}
+              <div className="bg-slate-50/80 p-6 rounded-2xl border border-slate-200/60">
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-purple-600" />
+                  How to Set Up Your Make.com Scenario in 2 Minutes
+                </h4>
+                <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside font-medium leading-relaxed">
+                  <li>
+                    Click <strong className="text-purple-700">Download Blueprint</strong> above to get the scenario file (<code className="bg-white px-1.5 py-0.5 rounded border border-slate-200">christos_cakes_make_blueprint.json</code>).
+                  </li>
+                  <li>
+                    In <strong>Make.com</strong>, click <strong>Create a new scenario</strong>, click the <strong>...</strong> menu at the bottom bar, and choose <strong>Import Blueprint</strong>.
+                  </li>
+                  <li>
+                    Click the <strong>Custom Webhook</strong> module, click <strong>Add</strong> to generate your URL, paste it above, and click <strong>Test Webhook</strong>. Every order creation and update is now live!
+                  </li>
+                </ol>
+              </div>
+
+              {/* Collapsible Legacy n8n Configuration */}
+              <details className="border-t border-slate-200/60 pt-6 group">
+                <summary className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] cursor-pointer hover:text-slate-600 flex items-center justify-between">
+                  <span>Legacy n8n Workflow Options (Optional)</span>
+                  <span className="text-xs text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                
+                <div className="space-y-6 mt-6 pt-4 border-t border-dashed border-slate-200">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">n8n Instance URL</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://your-n8n-instance.com"
+                      className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
+                      value={localN8nUrl}
+                      onChange={e => {
+                        setLocalN8nUrl(e.target.value);
+                        localStorage.setItem('sweettrack_n8n_url', e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">n8n API Key</label>
+                    <input 
+                      type="password" 
+                      placeholder="Enter your X-N8N-API-KEY"
+                      className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
+                      value={localN8nApiKey}
+                      onChange={e => {
+                        setLocalN8nApiKey(e.target.value);
+                        localStorage.setItem('sweettrack_n8n_api_key', e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  {syncFeedback.message && (
+                    <div className={`p-4 rounded-xl border flex gap-3 text-xs font-medium leading-relaxed ${syncFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-100' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                      {syncFeedback.type === 'success' ? <CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> : <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />}
+                      <div>{syncFeedback.message}</div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleAutoSync}
+                      disabled={isSyncingWorkflow}
+                      className="flex-1 bg-slate-800 text-white py-3.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${isSyncingWorkflow ? 'animate-spin' : ''}`} />
+                      {isSyncingWorkflow ? 'Syncing n8n...' : 'Sync to n8n'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopyWorkflow}
+                      className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copy n8n JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadWorkflow}
+                      className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download n8n JSON
+                    </button>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -1416,32 +1694,32 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
                       <button 
                         disabled={!order.totalPrice || order.totalPrice <= 0}
                         onClick={async () => {
-                          if (activeWebhookUrl) {
+                          const activeUrl = getMakeWebhookUrl() || activeWebhookUrl;
+                          if (activeUrl) {
                             try {
-                              // Remove large image data before sending to webhook
-                              const { inspirationImage, ...orderData } = order;
-                              
-                              await fetch(activeWebhookUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                  ...orderData, 
-                                  type: 'SEND_ORDER', 
-                                  appUrl: window.location.origin 
-                                })
+                              const res = await syncAutomationUpdate({
+                                event: 'order.sent_to_client',
+                                type: 'SEND_ORDER',
+                                order,
+                                orderId: order.id,
+                                force: true
                               });
-                              setLastAction('Order email triggered');
-                              setTimeout(() => setLastAction(null), 3000);
+                              if (res.success) {
+                                setLastAction('✓ Dispatched to Make.com & client');
+                              } else {
+                                setLastAction(`Dispatched: ${res.message}`);
+                              }
+                              setTimeout(() => setLastAction(null), 3500);
                             } catch (err) {
                               console.error(err);
-                              alert('Failed to trigger email. Check your Webhook URL.');
+                              alert('Failed to trigger automation. Check your Webhook URL.');
                             }
                           } else {
                             setViewMode('Settings');
-                            alert('Automation Webhook not configured. Please set it in Settings.');
+                            alert('Automation Webhook not configured. Please set your Make.com Webhook in Settings.');
                           }
                         }}
-                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300"
+                        className="w-full bg-pink-600 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:bg-slate-300 cursor-pointer"
                       >
                         Send Order to Client
                       </button>

@@ -25,6 +25,7 @@ import {
 import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, PASTRIES as DEFAULT_PASTRIES } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
 import { saveOrder, getStoredPastries, getOwnerSettings } from '../utils/storage';
+import { getMakeWebhookUrl, syncAutomationUpdate } from '../services/automation';
 import { Order, FulfillmentType, OrderCategory } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
@@ -120,7 +121,7 @@ const OrderForm: React.FC = () => {
     });
   };
 
-  const activeWebhookUrl = N8N_WEBHOOK_URL_ENV || (() => {
+  const activeWebhookUrl = getMakeWebhookUrl() || N8N_WEBHOOK_URL_ENV || (() => {
     try {
       return localStorage.getItem('sweettrack_webhook_url');
     } catch (e) {

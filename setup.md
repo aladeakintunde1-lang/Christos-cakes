@@ -52,11 +52,17 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 5. Check the **Actions** tab in your GitHub repository. Both `Run Database Migrations` and `Sync to n8n` should run automatically.
 6. Find the n8n workflow ID in the `Sync to n8n` action log and add it to `n8n/workflow.json` if it was a new creation.
 
-## Step 5 — n8n Setup
-1. Open your n8n instance.
-2. Find the **Christos Cakes Automation** workflow.
-3. Open the **Secrets** node and enter your Twilio and Supabase credentials.
-4. Activate the workflow.
+## Step 5 — Automation Setup (Make.com or n8n)
+### Make.com (Recommended)
+1. In the **Admin Portal** (`/admin`), go to **Settings > Make.com Automation**.
+2. Click **Download Blueprint** to get `christos_cakes_make_blueprint.json`.
+3. Open [Make.com](https://make.com) -> **Create a new scenario** -> click **... -> Import Blueprint** and choose the downloaded file.
+4. Click the **Custom Webhook** module -> click **Add** to generate your Webhook URL.
+5. Paste your Webhook URL into the Admin Portal and click **Test Webhook**.
+6. Switch the scenario to **ON**. All order submissions, status changes (Baking, Ready, Delivered), quote updates, and client feedback will automatically synchronize in real time!
+
+### Legacy n8n (Optional)
+If using n8n: open your instance, import `n8n/master_workflow.json`, configure your credentials, and paste your webhook into the n8n section.
 
 ## Step 6 — Deploy to Vercel
 1. Import your GitHub repository to **Vercel** (`https://vercel.com/new`).
