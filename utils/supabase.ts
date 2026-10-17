@@ -5,18 +5,22 @@ export const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e
 
 export const getSupabaseUrl = (): string => {
   try {
-    const saved = localStorage.getItem('sweettrack_supabase_url');
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('sweettrack_supabase_url') : null;
     if (saved && saved.trim()) return saved.trim();
   } catch {}
-  return import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const envUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL)
+    || (typeof process !== 'undefined' && process.env && process.env.VITE_SUPABASE_URL);
+  return envUrl || DEFAULT_SUPABASE_URL;
 };
 
 export const getSupabaseAnonKey = (): string => {
   try {
-    const saved = localStorage.getItem('sweettrack_supabase_anon_key');
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('sweettrack_supabase_anon_key') : null;
     if (saved && saved.trim()) return saved.trim();
   } catch {}
-  return import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  const envKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY)
+    || (typeof process !== 'undefined' && process.env && process.env.VITE_SUPABASE_ANON_KEY);
+  return envKey || DEFAULT_SUPABASE_ANON_KEY;
 };
 
 let currentClient: SupabaseClient = createClient(getSupabaseUrl(), getSupabaseAnonKey());

@@ -1,21 +1,32 @@
-
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Lock } from 'lucide-react';
 import CustomerPortal from './components/CustomerPortal';
 import AdminPortal from './components/AdminPortal';
 import OrderForm from './components/OrderForm';
 import OrderView from './components/OrderView';
+import ErrorBoundary from './components/ErrorBoundary';
 import { UserRole } from './types';
 import { syncWithSupabase, seedPastries } from './utils/storage';
 import { PASTRIES } from './constants';
 
-const Navigation = ({ role, setRole }: { role: UserRole, setRole: (r: UserRole) => void }) => {
+const HashRedirector = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (window.location.hash && window.location.hash.startsWith('#/')) {
+      const target = window.location.hash.slice(1);
+      navigate(target, { replace: true });
+    }
+  }, [navigate]);
+  return null;
+};
+
+const Navigation = ({ role, setRole }: { role: UserRole; setRole: (r: UserRole) => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
   const isStoreActive = location.pathname === '/' || location.pathname === '/order';
-  const isAdminActive = location.pathname === '/admin';
+  const isAdminActive = location.pathname.startsWith('/admin');
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-xl border-t border-white/20 px-8 pt-4 pb-safe flex justify-around items-center z-50 transition-all duration-300 shadow-[0_-10px_40px_rgba(219,39,119,0.05)] md:top-0 md:bottom-auto md:border-t-0 md:border-b md:pb-4">
@@ -47,26 +58,35 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      await seedPastries(PASTRIES);
-      await syncWithSupabase();
+      try {
+        await seedPastries(PASTRIES);
+        await syncWithSupabase();
+      } catch (err) {
+        console.warn('Initialization sync warning:', err);
+      }
     };
     init();
   }, []);
 
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col soft-pink-bg">
-        <Navigation role={role} setRole={setRole} />
-        <main className="flex-grow max-w-5xl mx-auto w-full px-4 pt-8 pb-24 md:pb-16 md:pt-32">
-          <Routes>
-            <Route path="/" element={<CustomerPortal />} />
-            <Route path="/order" element={<OrderForm />} />
-            <Route path="/admin" element={<AdminPortal />} />
-            <Route path="/order/:orderId" element={<OrderView />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <HashRedirector />
+        <div className="min-h-screen flex flex-col soft-pink-bg">
+          <Navigation role={role} setRole={setRole} />
+          <main className="flex-grow max-w-5xl mx-auto w-full px-4 pt-8 pb-24 md:pb-16 md:pt-32">
+            <Routes>
+              <Route path="/" element={<CustomerPortal />} />
+              <Route path="/order" element={<OrderForm />} />
+              <Route path="/admin" element={<AdminPortal />} />
+              <Route path="/order/:orderId" element={<OrderView />} />
+              {/* Fallback for any unknown route to boutique */}
+              <Route path="*" element={<CustomerPortal />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

@@ -59,12 +59,19 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 4. Activate the workflow.
 
 ## Step 6 — Deploy to Vercel
-1. Connect your GitHub repo to Vercel.
-2. Add the following environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_N8N_WEBHOOK_URL`
-3. Deploy.
+1. Import your GitHub repository to **Vercel** (`https://vercel.com/new`).
+2. Verify Project Settings (automatically detected from `vercel.json`):
+   - **Framework Preset:** Vite
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Install Command:** `npm install`
+3. Add the following **Environment Variables** in the Vercel dashboard:
+   - `VITE_SUPABASE_URL`: Your Supabase Project URL (e.g., `https://ovbgtfgbxjaavnpsazvg.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key
+   - `VITE_N8N_WEBHOOK_URL`: (Optional) Your n8n webhook URL
+   - `GEMINI_API_KEY`: (Optional) Your Google Gemini API key for smart cake messaging suggestions
+4. Click **Deploy**.
+5. Once deployed, all routes (`/`, `/order`, `/admin`, `/order/:id`) work seamlessly with client-side SPA routing and deep links.
 
 ## Step 7 — Verify Everything Works
 □ App loads at deployment URL.
