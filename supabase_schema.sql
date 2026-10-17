@@ -48,6 +48,17 @@ CREATE TABLE IF NOT EXISTS gallery (
 CREATE TABLE IF NOT EXISTS settings (
   id INTEGER PRIMARY KEY DEFAULT 1,
   logoUrl TEXT,
+  adminWhatsAppNumber TEXT,
+  adminemail TEXT,
+  businessname TEXT,
+  shoppostcode TEXT,
+  pickupaddress TEXT,
+  instagramurl TEXT,
+  bankname TEXT,
+  sortcode TEXT,
+  accountnumber TEXT,
+  accountname TEXT,
+  reference TEXT,
   CONSTRAINT single_row CHECK (id = 1)
 );
 

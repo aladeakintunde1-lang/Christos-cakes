@@ -62,7 +62,33 @@ export enum UserRole {
   ADMIN = 'ADMIN'
 }
 
-export interface Settings {
-  logoUrl: string;
-  adminWhatsAppNumber?: string;
+export interface OwnerProfile {
+  adminEmail: string;
+  adminWhatsAppNumber: string;
+  businessName: string;
+  shopPostcode: string;
+  pickupAddress: string;
+  instagramUrl: string;
+  bankName: string;
+  sortCode: string;
+  accountNumber: string;
+  accountName: string;
+  reference: string;
 }
+
+export interface Settings {
+  id?: number;
+  logoUrl?: string;
+  adminWhatsAppNumber?: string;
+  adminEmail?: string;
+  businessName?: string;
+  shopPostcode?: string;
+  pickupAddress?: string;
+  instagramUrl?: string;
+  bankName?: string;
+  sortCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+  reference?: string;
+}
+

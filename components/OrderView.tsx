@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, ChevronLeft, Lock, Star, Heart, Check, MessageSquare } from 'lucide-react';
-import { getOrders, getSettings, syncWithSupabase, updateOrderFeedback } from '../utils/storage';
+import { getOrders, getSettings, syncWithSupabase, updateOrderFeedback, getOwnerSettings } from '../utils/storage';
 import { supabase } from '../utils/supabase';
-import { Order } from '../types';
+import { Order, OwnerProfile } from '../types';
 import { SHOP_POSTCODE, PICKUP_ADDRESS, LOGO_URL, PASTRIES } from '../constants';
 
 const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
@@ -15,6 +15,8 @@ const OrderView: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [brandLogo, setBrandLogo] = useState<string>(LOGO_URL);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [ownerInfo, setOwnerInfo] = useState<OwnerProfile>(getOwnerSettings());
+
 
   // Customer Feedback States
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
@@ -57,6 +59,8 @@ const OrderView: React.FC = () => {
     const loadOrder = async () => {
       const settings = getSettings();
       if (settings?.logoUrl) setBrandLogo(settings.logoUrl);
+      setOwnerInfo(getOwnerSettings());
+
 
       if (orderId) {
         // Try local first
@@ -183,8 +187,8 @@ const OrderView: React.FC = () => {
             </div>
             <div className="text-xs text-luxury-muted leading-relaxed space-y-1.5 opacity-80">
               <p className="small-caps text-luxury-ink font-semibold tracking-wider mb-1">Studio Location</p>
-              <p>{PICKUP_ADDRESS}</p>
-              <p>{SHOP_POSTCODE}, United Kingdom</p>
+              <p>{ownerInfo.pickupAddress || PICKUP_ADDRESS}</p>
+              <p>{ownerInfo.shopPostcode || SHOP_POSTCODE}, United Kingdom</p>
               <p className="pt-2 italic">www.christoscakes.co.uk</p>
             </div>
           </div>
@@ -381,23 +385,23 @@ const OrderView: React.FC = () => {
               <div className="grid grid-cols-2 gap-y-6 gap-x-12">
                 <div>
                   <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Bank Name</p>
-                  <p className="text-sm font-semibold text-luxury-ink">Monzo</p>
+                  <p className="text-sm font-semibold text-luxury-ink">{ownerInfo.bankName || 'Monzo'}</p>
                 </div>
                 <div>
                   <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Account Name</p>
-                  <p className="text-sm font-semibold text-luxury-ink">Christianah Alade</p>
+                  <p className="text-sm font-semibold text-luxury-ink">{ownerInfo.accountName || 'Christianah Alade'}</p>
                 </div>
                 <div>
                   <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Sort Code</p>
-                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">04-00-03</p>
+                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">{ownerInfo.sortCode || '04-00-03'}</p>
                 </div>
                 <div>
                   <p className="small-caps text-[9px] text-luxury-muted mb-2 tracking-widest">Account Number</p>
-                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">90709406</p>
+                  <p className="text-sm font-medium text-luxury-ink font-mono tracking-tighter">{ownerInfo.accountNumber || '90709406'}</p>
                 </div>
                 <div className="col-span-2 pt-4 border-t border-slate-100">
                   <p className="small-caps text-luxury-accent mb-1 text-[10px] tracking-widest font-bold">Reference</p>
-                  <p className="text-xs font-light text-luxury-muted italic">Please use your <span className="text-luxury-accent font-medium">full name</span> as the reference only.</p>
+                  <p className="text-xs font-light text-luxury-muted italic">{ownerInfo.reference || 'Please use your full name as the reference only.'}</p>
                 </div>
               </div>
             </div>

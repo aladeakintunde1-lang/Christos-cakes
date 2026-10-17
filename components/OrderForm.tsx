@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { SIZES, SHOP_POSTCODE, PICKUP_ADDRESS, INSTAGRAM_URL, PASTRIES as DEFAULT_PASTRIES } from '../constants';
 import { getCakeMessageSuggestion, getDistanceBetweenPostcodes } from '../services/gemini';
-import { saveOrder, getStoredPastries } from '../utils/storage';
+import { saveOrder, getStoredPastries, getOwnerSettings } from '../utils/storage';
 import { Order, FulfillmentType, OrderCategory } from '../types';
 
 const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i;
@@ -135,7 +135,8 @@ const OrderForm: React.FC = () => {
     if (UK_POSTCODE_REGEX.test(pc)) {
       setDistanceLoading(true);
       try {
-        const miles = await getDistanceBetweenPostcodes(SHOP_POSTCODE, pc);
+        const basePostcode = getOwnerSettings().shopPostcode || SHOP_POSTCODE;
+        const miles = await getDistanceBetweenPostcodes(basePostcode, pc);
         setCalculatedDistance(miles);
         setOrder(prev => ({ ...prev, distance: miles }));
       } catch (error) {
@@ -473,7 +474,7 @@ const OrderForm: React.FC = () => {
           {order.fulfillmentType === 'Collection' ? (
             <div className="bg-pink-50/20 p-10 rounded-[2.5rem] mb-12 border border-pink-100/50 backdrop-blur-sm">
               <p className="text-[10px] font-bold text-pink-400 mb-4 uppercase tracking-[0.4em]">Atelier Address</p>
-              <p className="text-base text-pink-950 font-serif leading-relaxed italic">{PICKUP_ADDRESS}</p>
+              <p className="text-base text-pink-950 font-serif leading-relaxed italic">{getOwnerSettings().pickupAddress || PICKUP_ADDRESS}</p>
             </div>
           ) : (
             <div className="space-y-10 mb-12">
@@ -583,7 +584,7 @@ const OrderForm: React.FC = () => {
                 <p className="text-[11px] text-slate-400 mb-10 font-medium">Reference our curated gallery or upload your own vision.</p>
                 
                 <a 
-                  href={INSTAGRAM_URL} 
+                  href={getOwnerSettings().instagramUrl || INSTAGRAM_URL} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center w-full py-6 px-10 rounded-2xl bg-slate-900 text-white font-bold text-[11px] tracking-[0.4em] mb-10 shadow-2xl hover:bg-slate-800 transition-all uppercase"

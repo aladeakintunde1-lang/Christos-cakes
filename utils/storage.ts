@@ -1,11 +1,34 @@
 
-import { Order, GalleryImage } from '../types';
+import { Order, GalleryImage, OwnerProfile } from '../types';
 import { supabase } from './supabase';
+import { 
+  BANK_DETAILS, 
+  PICKUP_ADDRESS, 
+  SHOP_POSTCODE, 
+  INSTAGRAM_URL,
+  LOGO_URL 
+} from '../constants';
 
 const ORDERS_KEY = 'sweettrack_orders';
 const GALLERY_KEY = 'sweettrack_gallery';
 const SETTINGS_KEY = 'sweettrack_settings';
 const PASTRIES_KEY = 'sweettrack_pastries';
+export const OWNER_SETTINGS_KEY = 'sweettrack_owner_settings';
+
+export const DEFAULT_OWNER_PROFILE: OwnerProfile = {
+  adminEmail: 'aladeakintunde1@gmail.com',
+  adminWhatsAppNumber: '+447393150048',
+  businessName: 'Christos Cakes & Events',
+  shopPostcode: SHOP_POSTCODE || 'TA21 9RH',
+  pickupAddress: PICKUP_ADDRESS || '7 Singh street, Wellington, TA21 9RH',
+  instagramUrl: INSTAGRAM_URL || 'https://www.instagram.com/Christoscakes_events/',
+  bankName: BANK_DETAILS?.bankName || 'Monzo',
+  sortCode: BANK_DETAILS?.sortCode || '04-00-03',
+  accountNumber: BANK_DETAILS?.accountNumber || '90709406',
+  accountName: BANK_DETAILS?.accountName || 'Christianah Alade',
+  reference: BANK_DETAILS?.reference || 'your name only please'
+};
+
 
 // Helper to sync local storage with Supabase
 export const syncWithSupabase = async () => {
@@ -90,7 +113,24 @@ export const syncWithSupabase = async () => {
   try {
     const { data: settings, error } = await supabase.from('settings').select('*').maybeSingle();
     if (error) throw error;
-    if (settings?.logoUrl) localStorage.setItem(SETTINGS_KEY, settings.logoUrl);
+    if (settings) {
+      if (settings.logoUrl) localStorage.setItem(SETTINGS_KEY, settings.logoUrl);
+      const prev = getOwnerSettings();
+      const updated: OwnerProfile = {
+        adminEmail: settings.adminemail || settings.adminEmail || prev.adminEmail,
+        adminWhatsAppNumber: settings.adminWhatsAppNumber || settings.adminwhatsappnumber || prev.adminWhatsAppNumber,
+        businessName: settings.businessname || settings.businessName || prev.businessName,
+        shopPostcode: settings.shoppostcode || settings.shopPostcode || prev.shopPostcode,
+        pickupAddress: settings.pickupaddress || settings.pickupAddress || prev.pickupAddress,
+        instagramUrl: settings.instagramurl || settings.instagramUrl || prev.instagramUrl,
+        bankName: settings.bankname || settings.bankName || prev.bankName,
+        sortCode: settings.sortcode || settings.sortCode || prev.sortCode,
+        accountNumber: settings.accountnumber || settings.accountNumber || prev.accountNumber,
+        accountName: settings.accountname || settings.accountName || prev.accountName,
+        reference: settings.reference || prev.reference,
+      };
+      localStorage.setItem(OWNER_SETTINGS_KEY, JSON.stringify(updated));
+    }
   } catch (error) {
     console.error('Failed to sync settings:', error);
   }
@@ -303,6 +343,61 @@ export const saveLogoUrl = async (url: string) => {
     console.error('Supabase saveLogoUrl error:', error);
   }
 };
+
+export const getOwnerSettings = (): OwnerProfile => {
+  try {
+    const raw = localStorage.getItem(OWNER_SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_OWNER_PROFILE, ...parsed };
+    }
+  } catch (e) {
+    console.warn('Failed to parse owner settings from localStorage:', e);
+  }
+  return { ...DEFAULT_OWNER_PROFILE };
+};
+
+export const saveOwnerSettings = async (
+  profileUpdate: Partial<OwnerProfile>
+): Promise<{ success: boolean; error?: any }> => {
+  const current = getOwnerSettings();
+  const merged: OwnerProfile = { ...current, ...profileUpdate };
+  
+  try {
+    localStorage.setItem(OWNER_SETTINGS_KEY, JSON.stringify(merged));
+    window.dispatchEvent(new Event('owner_settings_updated'));
+  } catch (e) {
+    console.warn('Failed to save owner settings locally:', e);
+  }
+
+  try {
+    const updatePayload: Record<string, any> = {};
+    if (profileUpdate.adminWhatsAppNumber !== undefined) updatePayload.adminWhatsAppNumber = profileUpdate.adminWhatsAppNumber;
+    if (profileUpdate.adminEmail !== undefined) updatePayload.adminemail = profileUpdate.adminEmail;
+    if (profileUpdate.businessName !== undefined) updatePayload.businessname = profileUpdate.businessName;
+    if (profileUpdate.shopPostcode !== undefined) updatePayload.shoppostcode = profileUpdate.shopPostcode;
+    if (profileUpdate.pickupAddress !== undefined) updatePayload.pickupaddress = profileUpdate.pickupAddress;
+    if (profileUpdate.instagramUrl !== undefined) updatePayload.instagramurl = profileUpdate.instagramUrl;
+    if (profileUpdate.bankName !== undefined) updatePayload.bankname = profileUpdate.bankName;
+    if (profileUpdate.sortCode !== undefined) updatePayload.sortcode = profileUpdate.sortCode;
+    if (profileUpdate.accountNumber !== undefined) updatePayload.accountnumber = profileUpdate.accountNumber;
+    if (profileUpdate.accountName !== undefined) updatePayload.accountname = profileUpdate.accountName;
+    if (profileUpdate.reference !== undefined) updatePayload.reference = profileUpdate.reference;
+
+    if (Object.keys(updatePayload).length > 0) {
+      const { error } = await supabase.from('settings').update(updatePayload).eq('id', 1);
+      if (error) {
+        console.warn('Supabase settings direct update failed, trying upsert:', error.message);
+        await supabase.from('settings').upsert({ id: 1, ...updatePayload });
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save owner settings to Supabase:', error);
+    return { success: false, error };
+  }
+};
+
 
 // Pastry Methods
 export const getStoredPastries = () => {

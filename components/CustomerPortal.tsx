@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll } from 'motion/react';
 import { Instagram, Plus, Search, Loader2, Sparkles, ChevronRight, Clock, MapPin } from 'lucide-react';
-import { getGalleryImages, getOrders, syncWithSupabase } from '../utils/storage';
+import { getGalleryImages, getOrders, syncWithSupabase, getOwnerSettings } from '../utils/storage';
 import { supabase } from '../utils/supabase';
 import { GalleryImage, Order } from '../types';
 import { INSTAGRAM_URL } from '../constants';
+
 
 const DEFAULT_IMAGES: Partial<GalleryImage>[] = [
   { id: 'd1', url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=800&auto=format&fit=crop', displayMode: 'original' },
@@ -184,7 +185,7 @@ const CustomerPortal: React.FC = () => {
               <motion.a 
                 whileHover={{ y: -4, scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                href={INSTAGRAM_URL}
+                href={getOwnerSettings().instagramUrl || INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white/40 backdrop-blur-md inline-flex items-center gap-4 px-8 py-4 rounded-full shadow-[0_10px_30px_rgba(219,39,119,0.05)] hover:shadow-[0_20px_40px_rgba(219,39,119,0.1)] transition-all group border border-white/60"
@@ -406,7 +407,7 @@ const CustomerPortal: React.FC = () => {
         <p className="text-[9px] font-bold uppercase tracking-[0.5em] text-pink-300 mb-8 pt-16">Handcrafted with Love</p>
         <h2 className="text-4xl font-serif text-pink-950 mb-8 font-light tracking-tighter">Christos Cakes</h2>
         <div className="flex justify-center gap-10">
-          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-pink-600 transition-all hover:scale-110 duration-500">
+          <a href={getOwnerSettings().instagramUrl || INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-pink-600 transition-all hover:scale-110 duration-500">
             <span className="sr-only">Instagram</span>
             <Instagram className="h-6 w-6" />
           </a>

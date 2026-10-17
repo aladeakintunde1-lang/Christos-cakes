@@ -18,7 +18,21 @@ import {
   Copy,
   Download,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Database,
+  Key,
+  ShieldCheck,
+  Mail,
+  Phone,
+  Building,
+  CreditCard,
+  Send,
+  Globe,
+  Eye,
+  EyeOff,
+  Sparkles,
+  CheckCircle2,
+  Save
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -30,13 +44,25 @@ import {
   addGalleryImage, 
   deleteGalleryImage,
   getLogoUrl,
-  saveLogoUrl
+  saveLogoUrl,
+  getOwnerSettings,
+  saveOwnerSettings
 } from '../utils/storage';
-import { Order, OrderStatus, GalleryImage, ImageDisplayMode } from '../types';
+import { 
+  getSupabaseUrl, 
+  getSupabaseAnonKey, 
+  reconfigureSupabase, 
+  resetSupabaseToDefault,
+  DEFAULT_SUPABASE_URL,
+  DEFAULT_SUPABASE_ANON_KEY,
+  supabase
+} from '../utils/supabase';
+import { Order, OrderStatus, GalleryImage, ImageDisplayMode, OwnerProfile } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 import masterWorkflow from '../n8n/master_workflow.json';
 
 const N8N_WEBHOOK_URL_ENV = import.meta.env.VITE_N8N_WEBHOOK_URL;
+
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -65,6 +91,22 @@ const AdminPortal: React.FC = () => {
   });
   const [isSyncingWorkflow, setIsSyncingWorkflow] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+
+  // Supabase Configuration & Profile State
+  const [localSupabaseUrl, setLocalSupabaseUrl] = useState<string>(getSupabaseUrl());
+  const [localSupabaseAnonKey, setLocalSupabaseAnonKey] = useState<string>(getSupabaseAnonKey());
+  const [showAnonKey, setShowAnonKey] = useState(false);
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseFeedback, setSupabaseFeedback] = useState<{ type: 'success' | 'error' | null; message: string; latency?: number }>({ type: null, message: '' });
+
+  const [ownerProfile, setOwnerProfile] = useState<OwnerProfile>(getOwnerSettings());
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+
+  const [isSendingAuth, setIsSendingAuth] = useState(false);
+  const [authFeedback, setAuthFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [copiedSql, setCopiedSql] = useState(false);
+
 
   const handleCopyWorkflow = async () => {
     try {
@@ -237,7 +279,131 @@ const AdminPortal: React.FC = () => {
     await syncWithSupabase();
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
+    setOwnerProfile(getOwnerSettings());
   };
+
+  const handleSaveSupabaseConfig = async () => {
+    try {
+      reconfigureSupabase(localSupabaseUrl, localSupabaseAnonKey);
+      setSupabaseFeedback({ type: 'success', message: '✓ Supabase credentials updated and active!' });
+      await refreshData();
+      await handleTestSupabaseConnection();
+      setTimeout(() => setSupabaseFeedback(prev => prev.type === 'success' ? { type: null, message: '' } : prev), 4000);
+    } catch (err: any) {
+      setSupabaseFeedback({ type: 'error', message: err?.message || 'Failed to apply Supabase config.' });
+    }
+  };
+
+  const handleResetSupabaseConfig = async () => {
+    resetSupabaseToDefault();
+    setLocalSupabaseUrl(DEFAULT_SUPABASE_URL);
+    setLocalSupabaseAnonKey(DEFAULT_SUPABASE_ANON_KEY);
+    setSupabaseFeedback({ type: 'success', message: '✓ Supabase credentials reset to project defaults.' });
+    await refreshData();
+    setTimeout(() => setSupabaseFeedback({ type: null, message: '' }), 4000);
+  };
+
+  const handleTestSupabaseConnection = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseFeedback({ type: null, message: '' });
+    const startTime = performance.now();
+    try {
+      const { error: sErr } = await supabase.from('settings').select('id, adminWhatsAppNumber').limit(1);
+      if (sErr) throw sErr;
+
+      const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+      const { count: galleryCount } = await supabase.from('gallery').select('*', { count: 'exact', head: true });
+      const latency = Math.round(performance.now() - startTime);
+
+      setSupabaseFeedback({
+        type: 'success',
+        latency,
+        message: `✓ Connected to Supabase (${latency}ms) — Database live. Total Orders: ${ordersCount ?? 0}, Gallery Photos: ${galleryCount ?? 0}. Settings active.`
+      });
+    } catch (err: any) {
+      setSupabaseFeedback({
+        type: 'error',
+        message: `Connection failed: ${err?.message || 'Check your Supabase URL & Anon Key'}`
+      });
+    } finally {
+      setIsTestingSupabase(false);
+    }
+  };
+
+  const handleSaveOwnerProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileFeedback({ type: null, message: '' });
+    try {
+      const res = await saveOwnerSettings(ownerProfile);
+      if (!res.success) throw res.error;
+      setProfileFeedback({
+        type: 'success',
+        message: '✓ Your information has been successfully updated on your Supabase account!'
+      });
+      setLastAction('Supabase information updated');
+      setTimeout(() => setLastAction(null), 3000);
+      setTimeout(() => setProfileFeedback({ type: null, message: '' }), 6000);
+    } catch (err: any) {
+      setProfileFeedback({
+        type: 'error',
+        message: `Failed to save to Supabase: ${err?.message || 'Check connection'}`
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSendMagicLink = async () => {
+    if (!ownerProfile.adminEmail) {
+      setAuthFeedback({ type: 'error', message: 'Please enter a valid Admin Email first.' });
+      return;
+    }
+    setIsSendingAuth(true);
+    setAuthFeedback({ type: null, message: '' });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email: ownerProfile.adminEmail });
+      if (error) throw error;
+      setAuthFeedback({
+        type: 'success',
+        message: `✓ Magic login link sent to ${ownerProfile.adminEmail}! Check your inbox.`
+      });
+      setTimeout(() => setAuthFeedback({ type: null, message: '' }), 6000);
+    } catch (err: any) {
+      setAuthFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to dispatch magic link. Verify email auth provider is enabled in Supabase.'
+      });
+    } finally {
+      setIsSendingAuth(false);
+    }
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!ownerProfile.adminEmail) {
+      setAuthFeedback({ type: 'error', message: 'Please enter a valid Admin Email first.' });
+      return;
+    }
+    setIsSendingAuth(true);
+    setAuthFeedback({ type: null, message: '' });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(ownerProfile.adminEmail);
+      if (error) throw error;
+      setAuthFeedback({
+        type: 'success',
+        message: `✓ Password reset link sent to ${ownerProfile.adminEmail} via Supabase Auth!`
+      });
+      setTimeout(() => setAuthFeedback({ type: null, message: '' }), 6000);
+    } catch (err: any) {
+      setAuthFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to send password reset.'
+      });
+    } finally {
+      setIsSendingAuth(false);
+    }
+  };
+
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -561,171 +727,552 @@ const AdminPortal: React.FC = () => {
       )}
 
       {viewMode === 'Settings' && (
-        <div className="animate-slideIn max-w-2xl mx-auto">
-          <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100">
-            <h2 className="text-3xl font-bold text-slate-900 font-serif mb-2">Brand Identity</h2>
-            <p className="text-sm text-slate-400 mb-10 font-medium">Manage your brand assets used across the application and orders.</p>
-            
-            <div className="space-y-10">
-              <div className="flex flex-col items-center p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8">Current Order Logo</p>
-                <div className="w-48 h-48 bg-white rounded-[2rem] shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden mb-8 p-4">
-                  <img src={customLogoUrl} alt="Brand Logo" className="max-w-full max-h-full object-contain" />
+        <div className="animate-slideIn max-w-4xl mx-auto space-y-10">
+          {/* Header */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="p-2.5 rounded-2xl bg-pink-50 text-pink-600">
+                  <Database className="h-6 w-6" />
+                </span>
+                <h2 className="text-3xl font-bold text-slate-900 font-serif">Supabase & Studio Settings</h2>
+              </div>
+              <p className="text-sm text-slate-400 font-medium max-w-xl">
+                Manage your live Supabase database account, owner profile & WhatsApp notification info, brand identity, and automation workflows.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-xs font-bold border border-emerald-100">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              Supabase Connected
+            </div>
+          </div>
+
+          {/* 1. OWNER PROFILE IN SUPABASE */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-pink-100/80 rounded-2xl flex items-center justify-center text-pink-600 shadow-inner">
+                  <Building className="h-6 w-6" strokeWidth={1.8} />
                 </div>
-                
-                <div className="flex gap-4 w-full">
-                  <button 
-                    onClick={() => logoInputRef.current?.click()}
-                    className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
-                  >
-                    <UploadCloud className="h-4 w-4" strokeWidth={2.5} />
-                    Upload New Logo
-                  </button>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 font-serif">Owner & Studio Profile in Supabase</h3>
+                  <p className="text-xs text-slate-400 font-medium">Synchronized with your Supabase database table <code className="bg-slate-100 px-1.5 py-0.5 rounded text-pink-600 font-mono text-[10px]">settings</code></p>
+                </div>
+              </div>
+              <span className="text-[10px] uppercase tracking-widest font-black bg-pink-50 text-pink-600 px-3.5 py-1.5 rounded-full border border-pink-100">
+                Primary Account Info
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveOwnerProfile} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <Mail className="h-3.5 w-3.5 text-pink-500" />
+                    Admin Email Address
+                  </label>
                   <input 
-                    type="file" 
-                    className="hidden" 
-                    ref={logoInputRef} 
-                    accept="image/*" 
-                    onChange={handleLogoUpload} 
+                    type="email"
+                    required
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.adminEmail}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, adminEmail: e.target.value })}
+                    placeholder="e.g. aladeakintunde1@gmail.com"
                   />
-                  {customLogoUrl !== LOGO_URL && (
-                    <button 
-                      onClick={() => {
-                        localStorage.removeItem('sweettrack_settings');
-                        setCustomLogoUrl(LOGO_URL);
-                        setLastAction('Logo reset to default');
-                        setTimeout(() => setLastAction(null), 3000);
-                      }}
-                      className="px-6 py-4 bg-white text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-red-500 transition-all border border-slate-200"
-                    >
-                      Reset
-                    </button>
-                  )}
+                  <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Used for admin notifications and access recovery.</p>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <Phone className="h-3.5 w-3.5 text-pink-500" />
+                    Admin WhatsApp & Phone
+                  </label>
+                  <input 
+                    type="tel"
+                    required
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.adminWhatsAppNumber}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, adminWhatsAppNumber: e.target.value })}
+                    placeholder="e.g. +447393150048"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1.5 font-medium">Receives instant WhatsApp alerts when customers place orders.</p>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <Building className="h-3.5 w-3.5 text-pink-500" />
+                    Business / Brand Name
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.businessName}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, businessName: e.target.value })}
+                    placeholder="e.g. Christos Cakes & Events"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <Globe className="h-3.5 w-3.5 text-pink-500" />
+                    Instagram Profile Link
+                  </label>
+                  <input 
+                    type="url"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.instagramUrl}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, instagramUrl: e.target.value })}
+                    placeholder="https://www.instagram.com/..."
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <MapPin className="h-3.5 w-3.5 text-pink-500" />
+                    Studio Pickup Address
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.pickupAddress}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, pickupAddress: e.target.value })}
+                    placeholder="e.g. 7 Singh street, Wellington, TA21 9RH"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <MapPin className="h-3.5 w-3.5 text-pink-500" />
+                    Studio Postcode (Distance Calculation Base)
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.shopPostcode}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, shopPostcode: e.target.value })}
+                    placeholder="e.g. TA21 9RH"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <CreditCard className="h-3.5 w-3.5 text-pink-500" />
+                    Bank Name
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.bankName}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, bankName: e.target.value })}
+                    placeholder="e.g. Monzo"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <CreditCard className="h-3.5 w-3.5 text-pink-500" />
+                    Account Name (Beneficiary)
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.accountName}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, accountName: e.target.value })}
+                    placeholder="e.g. Christianah Alade"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <CreditCard className="h-3.5 w-3.5 text-pink-500" />
+                    Sort Code
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 font-mono transition-all"
+                    value={ownerProfile.sortCode}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, sortCode: e.target.value })}
+                    placeholder="e.g. 04-00-03"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <CreditCard className="h-3.5 w-3.5 text-pink-500" />
+                    Account Number
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 font-mono transition-all"
+                    value={ownerProfile.accountNumber}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, accountNumber: e.target.value })}
+                    placeholder="e.g. 90709406"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
+                    <Info className="h-3.5 w-3.5 text-pink-500" />
+                    Payment Reference Instructions
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-4 bg-slate-50/70 hover:bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-bold text-slate-800 transition-all"
+                    value={ownerProfile.reference}
+                    onChange={e => setOwnerProfile({ ...ownerProfile, reference: e.target.value })}
+                    placeholder="e.g. your name only please"
+                  />
                 </div>
               </div>
 
-              <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <ExternalLink className="h-5 w-5 text-pink-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 font-serif">Automation & n8n Sync</h3>
+              {profileFeedback.message && (
+                <div className={`p-5 rounded-2xl border flex gap-3 text-xs font-semibold leading-relaxed animate-fadeIn ${profileFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                  {profileFeedback.type === 'success' ? <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />}
+                  <div>{profileFeedback.message}</div>
                 </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        placeholder="https://your-n8n-instance.com/webhook/..."
-                        className="flex-1 p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
-                        value={localWebhookUrl}
-                        onChange={e => {
-                          setLocalWebhookUrl(e.target.value);
-                          localStorage.setItem('sweettrack_webhook_url', e.target.value);
-                        }}
-                      />
-                    </div>
-                    {N8N_WEBHOOK_URL_ENV && (
-                      <p className="mt-3 text-[9px] text-green-600 font-bold uppercase tracking-widest">✓ Environment Variable Configured</p>
-                    )}
-                    {!activeWebhookUrl && (
-                      <p className="mt-3 text-[9px] text-rose-500 font-bold uppercase tracking-widest animate-pulse">⚠ Webhook URL Missing</p>
-                    )}
-                  </div>
+              )}
 
-                  <div className="border-t border-slate-200/60 pt-6">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n Instance URL</label>
-                    <input 
-                      type="text" 
-                      placeholder="https://your-n8n-instance.com"
-                      className="w-full p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
-                      value={localN8nUrl}
-                      onChange={e => {
-                        setLocalN8nUrl(e.target.value);
-                        localStorage.setItem('sweettrack_n8n_url', e.target.value);
-                      }}
-                    />
-                  </div>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="w-full bg-pink-600 hover:bg-pink-700 text-white py-5 px-8 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all shadow-xl shadow-pink-100 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSavingProfile ? 'animate-spin' : ''}`} />
+                  {isSavingProfile ? 'Updating Information on Supabase...' : 'Save & Update Information on Supabase'}
+                </button>
+              </div>
+            </form>
+          </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n API Key (for automatic sync)</label>
-                    <input 
-                      type="password" 
-                      placeholder="Enter your X-N8N-API-KEY"
-                      className="w-full p-5 bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none transition-all text-sm font-medium"
-                      value={localN8nApiKey}
-                      onChange={e => {
-                        setLocalN8nApiKey(e.target.value);
-                        localStorage.setItem('sweettrack_n8n_api_key', e.target.value);
-                      }}
-                    />
-                    <p className="mt-2 text-[10px] text-slate-400 font-medium">To generate a key, go to n8n Settings &gt; API keys.</p>
-                  </div>
+          {/* 2. SUPABASE ACCOUNT & CREDENTIALS MANAGER */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner">
+                  <Database className="h-6 w-6" strokeWidth={1.8} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 font-serif">Supabase Project Connection & Keys</h3>
+                  <p className="text-xs text-slate-400 font-medium">Configure or switch the Supabase project connected to this app</p>
+                </div>
+              </div>
+              <a
+                href={`https://supabase.com/dashboard/project/${localSupabaseUrl.replace('https://', '').split('.')[0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-pink-600 bg-slate-50 hover:bg-pink-50 px-4 py-2 rounded-xl transition-all border border-slate-200"
+              >
+                <span>Supabase Dashboard</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
 
-                  {syncFeedback.message && (
-                    <div className={`p-5 rounded-2xl border flex gap-4 text-xs font-medium leading-relaxed ${syncFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-100' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
-                      {syncFeedback.type === 'success' ? (
-                        <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                      )}
-                      <div>{syncFeedback.message}</div>
-                    </div>
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-emerald-600" />
+                    Supabase Project URL
+                  </label>
+                  {localSupabaseUrl === DEFAULT_SUPABASE_URL ? (
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">Default Instance</span>
+                  ) : (
+                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Custom Project Active</span>
                   )}
+                </div>
+                <input 
+                  type="text" 
+                  value={localSupabaseUrl}
+                  onChange={e => setLocalSupabaseUrl(e.target.value)}
+                  placeholder="https://your-project-id.supabase.co"
+                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-emerald-300 outline-none text-sm font-mono text-slate-800 transition-all"
+                />
+              </div>
 
-                  <div className="flex flex-col gap-3 pt-4">
-                    <button
-                      onClick={handleAutoSync}
-                      disabled={isSyncingWorkflow}
-                      className="w-full bg-pink-600 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg hover:shadow-pink-100 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${isSyncingWorkflow ? 'animate-spin' : ''}`} />
-                      {isSyncingWorkflow ? 'Syncing with n8n...' : 'Sync Workflow to n8n Automatically'}
-                    </button>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Key className="h-3.5 w-3.5 text-emerald-600" />
+                    Supabase Anon Public API Key
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAnonKey(!showAnonKey)}
+                    className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest flex items-center gap-1 cursor-pointer"
+                  >
+                    {showAnonKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {showAnonKey ? 'Hide Key' : 'Reveal Key'}
+                  </button>
+                </div>
+                <input 
+                  type={showAnonKey ? 'text' : 'password'}
+                  value={localSupabaseAnonKey}
+                  onChange={e => setLocalSupabaseAnonKey(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-emerald-300 outline-none text-sm font-mono text-slate-800 transition-all"
+                />
+              </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={handleCopyWorkflow}
-                        className="bg-white border border-slate-200 text-slate-600 hover:text-pink-650 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy JSON to Clipboard
-                      </button>
-                      <button
-                        onClick={handleDownloadWorkflow}
-                        className="bg-white border border-slate-200 text-slate-600 hover:text-pink-650 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Download Workflow JSON
-                      </button>
-                    </div>
-                  </div>
+              {supabaseFeedback.message && (
+                <div className={`p-5 rounded-2xl border flex gap-3 text-xs font-semibold leading-relaxed animate-fadeIn ${supabaseFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                  {supabaseFeedback.type === 'success' ? <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />}
+                  <div>{supabaseFeedback.message}</div>
+                </div>
+              )}
 
-                  <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                      This updates your n8n workflows with the newest custom experience details. It matches the workflow <code className="bg-slate-50 px-2 py-0.5 rounded text-pink-500 font-mono font-bold">Christos Cakes - Full Notification Mode</code> or other Christos workflow configurations and pushes updates instantly.
-                    </p>
-                  </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveSupabaseConfig}
+                  className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Save className="h-4 w-4" />
+                  Save & Apply Connection
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestSupabaseConnection}
+                  disabled={isTestingSupabase}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isTestingSupabase ? 'animate-spin' : ''}`} />
+                  {isTestingSupabase ? 'Testing Ping...' : 'Test Connection'}
+                </button>
+                {(localSupabaseUrl !== DEFAULT_SUPABASE_URL || localSupabaseAnonKey !== DEFAULT_SUPABASE_ANON_KEY) && (
+                  <button
+                    type="button"
+                    onClick={handleResetSupabaseConfig}
+                    className="bg-white border border-slate-200 text-slate-600 hover:text-rose-600 py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 cursor-pointer"
+                  >
+                    Reset Defaults
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. SUPABASE AUTHENTICATION & ADMIN ROLES */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shadow-inner">
+                <ShieldCheck className="h-6 w-6" strokeWidth={1.8} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 font-serif">Supabase Auth & Admin User Access</h3>
+                <p className="text-xs text-slate-400 font-medium">Manage authentication, login credentials, and database admin privileges</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target Account</span>
+                  <p className="text-base font-bold text-slate-800 font-mono">{ownerProfile.adminEmail || 'No email specified'}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSendMagicLink}
+                    disabled={isSendingAuth}
+                    className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Send Magic Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendPasswordReset}
+                    disabled={isSendingAuth}
+                    className="bg-white border border-slate-200 text-slate-700 hover:text-pink-600 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Reset Password
+                  </button>
                 </div>
               </div>
 
-              <div className="p-8 bg-pink-50 rounded-3xl border border-pink-100">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                    <Info className="h-5 w-5 text-pink-500" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-pink-900 mb-1">Logo Specifications</h4>
-                    <p className="text-[11px] text-pink-700/70 leading-relaxed">For the best results on your luxury orders, use a high-resolution PNG or JPG with a transparent or white background. Square or circular logos work best.</p>
-                  </div>
+              {authFeedback.message && (
+                <div className={`p-5 rounded-2xl border flex gap-3 text-xs font-semibold leading-relaxed animate-fadeIn ${authFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                  {authFeedback.type === 'success' ? <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />}
+                  <div>{authFeedback.message}</div>
+                </div>
+              )}
+
+              <div className="p-6 bg-slate-50/70 rounded-2xl border border-slate-200">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">SQL Snippet for Supabase admin_users</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`INSERT INTO admin_users (id, role) VALUES ('YOUR_AUTH_USER_ID', 'admin') ON CONFLICT (id) DO UPDATE SET role = 'admin';`);
+                      setCopiedSql(true);
+                      setTimeout(() => setCopiedSql(false), 3000);
+                    }}
+                    className="text-[10px] font-bold text-pink-600 hover:text-pink-800 uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="h-3 w-3" />
+                    {copiedSql ? '✓ Copied SQL!' : 'Copy SQL'}
+                  </button>
+                </div>
+                <pre className="bg-slate-900 text-pink-300 p-4 rounded-xl text-xs font-mono overflow-x-auto">
+{`INSERT INTO admin_users (id, role) 
+VALUES ('YOUR_AUTH_USER_ID', 'admin') 
+ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
+                </pre>
+                <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                  Run this once in the Supabase SQL Editor if you create a user in Supabase Authentication and want full admin privileges assigned.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. BRAND ASSETS & LOGO */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <h3 className="text-xl font-bold text-slate-900 font-serif mb-2">Brand Assets & Order Logo</h3>
+            <p className="text-xs text-slate-400 mb-8 font-medium">The official logo displayed on storefront and customer invoices.</p>
+            
+            <div className="flex flex-col items-center p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Current Order Logo</p>
+              <div className="w-48 h-48 bg-white rounded-[2rem] shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden mb-8 p-4">
+                <img src={customLogoUrl} alt="Brand Logo" className="max-w-full max-h-full object-contain" />
+              </div>
+              
+              <div className="flex gap-4 w-full max-w-md">
+                <button 
+                  onClick={() => logoInputRef.current?.click()}
+                  className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 cursor-pointer"
+                >
+                  <UploadCloud className="h-4 w-4" strokeWidth={2.5} />
+                  Upload New Logo
+                </button>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  ref={logoInputRef} 
+                  accept="image/*" 
+                  onChange={handleLogoUpload} 
+                />
+                {customLogoUrl !== LOGO_URL && (
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem('sweettrack_settings');
+                      setCustomLogoUrl(LOGO_URL);
+                      setLastAction('Logo reset to default');
+                      setTimeout(() => setLastAction(null), 3000);
+                    }}
+                    className="px-6 py-4 bg-white text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-red-500 transition-all border border-slate-200 cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 5. AUTOMATION & N8N SYNC */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-pink-100/80 rounded-2xl flex items-center justify-center text-pink-600 shadow-inner">
+                <ExternalLink className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 font-serif">Automation & n8n Sync</h3>
+                <p className="text-xs text-slate-400 font-medium">Connects WhatsApp messaging and order notification webhooks</p>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Webhook URL</label>
+                <input 
+                  type="text" 
+                  placeholder="https://your-n8n-instance.com/webhook/..."
+                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
+                  value={localWebhookUrl}
+                  onChange={e => {
+                    setLocalWebhookUrl(e.target.value);
+                    localStorage.setItem('sweettrack_webhook_url', e.target.value);
+                  }}
+                />
+                {N8N_WEBHOOK_URL_ENV && (
+                  <p className="mt-2 text-[9px] text-green-600 font-bold uppercase tracking-widest">✓ Environment Variable Configured</p>
+                )}
+                {!activeWebhookUrl && (
+                  <p className="mt-2 text-[9px] text-rose-500 font-bold uppercase tracking-widest animate-pulse">⚠ Webhook URL Missing</p>
+                )}
+              </div>
+
+              <div className="border-t border-slate-200/60 pt-6">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n Instance URL</label>
+                <input 
+                  type="text" 
+                  placeholder="https://your-n8n-instance.com"
+                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
+                  value={localN8nUrl}
+                  onChange={e => {
+                    setLocalN8nUrl(e.target.value);
+                    localStorage.setItem('sweettrack_n8n_url', e.target.value);
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">n8n API Key</label>
+                <input 
+                  type="password" 
+                  placeholder="Enter your X-N8N-API-KEY"
+                  className="w-full p-4 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-pink-300 outline-none text-sm font-medium"
+                  value={localN8nApiKey}
+                  onChange={e => {
+                    setLocalN8nApiKey(e.target.value);
+                    localStorage.setItem('sweettrack_n8n_api_key', e.target.value);
+                  }}
+                />
+              </div>
+
+              {syncFeedback.message && (
+                <div className={`p-5 rounded-2xl border flex gap-4 text-xs font-medium leading-relaxed ${syncFeedback.type === 'success' ? 'bg-green-50 text-green-800 border-green-100' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                  {syncFeedback.type === 'success' ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />}
+                  <div>{syncFeedback.message}</div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleAutoSync}
+                  disabled={isSyncingWorkflow}
+                  className="w-full bg-pink-600 text-white py-4 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-pink-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSyncingWorkflow ? 'animate-spin' : ''}`} />
+                  {isSyncingWorkflow ? 'Syncing with n8n...' : 'Sync Workflow to n8n Automatically'}
+                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCopyWorkflow}
+                    className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy JSON
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadWorkflow}
+                    className="bg-white border border-slate-200 text-slate-600 hover:text-pink-600 py-3.5 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download JSON
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
 
       {viewMode === 'Orders' && (
         <div className="space-y-8 animate-slideIn">
