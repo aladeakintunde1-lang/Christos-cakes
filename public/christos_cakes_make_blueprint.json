@@ -1,0 +1,220 @@
+{
+  "name": "Christos Cakes - Complete Order & Automation Workflow (Make.com)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": null,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "Christos Cakes Webhook Receiver"
+        },
+        "restore": {},
+        "parameters": [],
+        "expect": [
+          { "name": "event", "type": "text", "label": "Event Identifier (e.g. order.created, order.status_updated)" },
+          { "name": "type", "type": "text", "label": "Legacy Event Type (e.g. NEW_ORDER, STATUS_UPDATED)" },
+          { "name": "id", "type": "text", "label": "Order ID" },
+          { "name": "customerName", "type": "text", "label": "Customer Name" },
+          { "name": "email", "type": "text", "label": "Customer Email" },
+          { "name": "phone", "type": "text", "label": "Customer Phone" },
+          { "name": "status", "type": "text", "label": "Current Order Status" },
+          { "name": "previousStatus", "type": "text", "label": "Previous Status (if updated)" },
+          { "name": "totalPrice", "type": "number", "label": "Total Price (£)" },
+          { "name": "deliveryFee", "type": "number", "label": "Delivery Fee (£)" },
+          { "name": "fulfillmentType", "type": "text", "label": "Fulfillment Type (Collection/Delivery)" },
+          { "name": "deliveryDate", "type": "text", "label": "Event/Delivery Date" },
+          { "name": "deliveryTimeSlot", "type": "text", "label": "Time Window" },
+          { "name": "category", "type": "text", "label": "Order Category (Cake/Pastries/Both)" },
+          { "name": "flavor", "type": "text", "label": "Cake Flavor Palette" },
+          { "name": "size", "type": "text", "label": "Size / Tiers" },
+          { "name": "numberOfTiers", "type": "number", "label": "Number of Tiers" },
+          { "name": "tierArrangement", "type": "text", "label": "Tier Arrangement" },
+          { "name": "messageOnCake", "type": "text", "label": "Cake Inscription / Calligraphy" },
+          { "name": "pastriesSummary", "type": "text", "label": "Pastries Breakdown" },
+          { "name": "address", "type": "text", "label": "Street Address" },
+          { "name": "postcode", "type": "text", "label": "Postcode" },
+          { "name": "orderUrl", "type": "text", "label": "Live Client Order Tracking URL" },
+          { "name": "appUrl", "type": "text", "label": "Application Origin URL" },
+          { "name": "feedbackRating", "type": "number", "label": "Feedback Rating (1-5)" },
+          { "name": "feedbackComment", "type": "text", "label": "Feedback Comment" },
+          { "name": "timestamp", "type": "text", "label": "ISO Timestamp" },
+          { "name": "source", "type": "text", "label": "Application Source" }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0,
+          "name": "Automation Route by Event"
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "email:sendAnEmail",
+              "version": 2,
+              "parameters": {},
+              "filter": {
+                "name": "New Commission Received",
+                "conditions": [
+                  [
+                    { "a": "{{1.event}}", "o": "text:equal", "b": "order.created" }
+                  ],
+                  [
+                    { "a": "{{1.type}}", "o": "text:equal", "b": "NEW_ORDER" }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": ["{{1.email}}", "aladeakintunde1@gmail.com"],
+                "subject": "Christos Cakes Atelier: Commission #{{1.id}} Received",
+                "content": "<h2>Thank You for Your Order</h2><p>Dear {{1.customerName}},</p><p>We have received your bespoke commission for <strong>{{1.deliveryDate}} ({{1.deliveryTimeSlot}})</strong>.</p><p><strong>Order Details:</strong><br/>Category: {{1.category}}<br/>Flavor: {{1.flavor}}<br/>Size: {{1.size}}<br/>Calligraphy: {{1.messageOnCake}}<br/>Pastries: {{1.pastriesSummary}}<br/>Total: £{{1.totalPrice}}</p><p><a href=\"{{1.orderUrl}}\">Click here to track your commission live</a></p>"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -220, "name": "New Order Client & Baker Notification" }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 4,
+              "module": "email:sendAnEmail",
+              "version": 2,
+              "parameters": {},
+              "filter": {
+                "name": "Order Status Updated",
+                "conditions": [
+                  [
+                    { "a": "{{1.event}}", "o": "text:equal", "b": "order.status_updated" }
+                  ],
+                  [
+                    { "a": "{{1.type}}", "o": "text:equal", "b": "STATUS_UPDATED" }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": ["{{1.email}}"],
+                "subject": "Christos Cakes: Order #{{1.id}} Status Updated to {{1.status}}",
+                "content": "<h2>Order Status Update</h2><p>Dear {{1.customerName}},</p><p>Your order status has progressed from <em>{{1.previousStatus}}</em> to <strong>{{1.status}}</strong>.</p><p>Delivery Date: {{1.deliveryDate}} ({{1.deliveryTimeSlot}})</p><p><a href=\"{{1.orderUrl}}\">View your updated live order progress</a>.</p>"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -70, "name": "Status Update Notification" }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "email:sendAnEmail",
+              "version": 2,
+              "parameters": {},
+              "filter": {
+                "name": "Quote Updated / Sent to Client",
+                "conditions": [
+                  [
+                    { "a": "{{1.event}}", "o": "text:equal", "b": "order.quote_updated" }
+                  ],
+                  [
+                    { "a": "{{1.event}}", "o": "text:equal", "b": "order.sent_to_client" }
+                  ],
+                  [
+                    { "a": "{{1.type}}", "o": "text:equal", "b": "SEND_ORDER" }
+                  ],
+                  [
+                    { "a": "{{1.type}}", "o": "text:equal", "b": "QUOTE_UPDATED" }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": ["{{1.email}}"],
+                "subject": "Christos Cakes Atelier: Bespoke Quotation for Order #{{1.id}}",
+                "content": "<h2>Your Bespoke Quote is Ready</h2><p>Dear {{1.customerName}},</p><p>Our atelier has prepared your personalized quote for your event on {{1.deliveryDate}}.</p><p><strong>Quoted Total: £{{1.totalPrice}}</strong> (Delivery fee: £{{1.deliveryFee}})</p><p><a href=\"{{1.orderUrl}}\">Review and accept your bespoke quote</a></p>"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 80, "name": "Quote & Invoice Dispatch" }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "module": "email:sendAnEmail",
+              "version": 2,
+              "parameters": {},
+              "filter": {
+                "name": "Client Feedback Received",
+                "conditions": [
+                  [
+                    { "a": "{{1.event}}", "o": "text:equal", "b": "feedback.submitted" }
+                  ],
+                  [
+                    { "a": "{{1.type}}", "o": "text:equal", "b": "NEW_FEEDBACK" }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": ["aladeakintunde1@gmail.com"],
+                "subject": "Christos Cakes: New {{1.feedbackRating}}-Star Review (Order #{{1.id}})",
+                "content": "<h2>New Feedback Received</h2><p>Client: {{1.customerName}} ({{1.email}})</p><p>Order ID: {{1.id}}</p><p>Rating: {{1.feedbackRating}} / 5 Stars</p><p>Comment: <blockquote>{{1.feedbackComment}}</blockquote></p>"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 230, "name": "Customer Feedback Alert" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {
+        "status": 200
+      },
+      "mapper": {
+        "body": "{\"success\": true, \"synchronized\": true, \"event\": \"{{1.event}}\", \"orderId\": \"{{1.id}}\", \"source\": \"Make.com\"}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 950,
+          "y": 0,
+          "name": "Acknowledge Sync"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}

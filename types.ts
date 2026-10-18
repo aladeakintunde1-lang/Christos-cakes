@@ -1,5 +1,5 @@
 
-export type OrderStatus = 'Pending' | 'Baking' | 'Ready' | 'Completed' | 'Cancelled';
+export type OrderStatus = 'New Order' | 'Pending' | 'Baking' | 'Ready' | 'Completed' | 'Cancelled';
 
 export type FulfillmentType = 'Collection' | 'Delivery';
 
@@ -7,6 +7,7 @@ export type OrderCategory = 'Cake' | 'Pastries' | 'Both';
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   customerName: string;
   email: string;
   phone: string;
@@ -48,6 +49,45 @@ export interface Zone {
   postcodes: string[];
   fee: number;
   locale: string;
+}
+
+export type InvoiceStatus = 'Draft' | 'Issued' | 'Paid' | 'Cancelled';
+
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress?: string;
+  status: InvoiceStatus;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxRate: number; // e.g. 0 or 20 for 20%
+  taxAmount: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  discountAmount: number;
+  deliveryCharge: number;
+  otherFees: number;
+  otherFeesDescription?: string;
+  total: number;
+  notes?: string;
+  paymentTerms?: string;
+  issueDate: string;
+  dueDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrderInvoice {

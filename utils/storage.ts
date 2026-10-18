@@ -1,5 +1,5 @@
 
-import { Order, GalleryImage, OwnerProfile } from '../types';
+import { Order, GalleryImage, OwnerProfile, Invoice, InvoiceItem, InvoiceStatus } from '../types';
 import { supabase } from './supabase';
 import { syncAutomationUpdate } from '../services/automation';
 import { 
@@ -152,6 +152,14 @@ export const getOrders = (): Order[] => {
 };
 
 export const saveOrder = async (order: Order) => {
+  // Ensure unique order number and status are assigned
+  if (!order.orderNumber) {
+    order.orderNumber = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+  }
+  if (!order.status) {
+    order.status = 'New Order';
+  }
+
   // Try to save locally first
   const orders = getOrders();
   orders.push(order);
@@ -485,5 +493,219 @@ export const seedPastries = async (pastries: any[]) => {
     }
   } catch (error) {
     console.error('Failed to seed pastries:', error);
+  }
+};
+
+// ==========================================
+// INVOICING SUITE (CRUD & AUTOMATION)
+// ==========================================
+export const INVOICES_KEY = 'sweettrack_invoices';
+
+export const getInvoices = (): Invoice[] => {
+  try {
+    const data = localStorage.getItem(INVOICES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    console.error('Failed to parse invoices:', e);
+    return [];
+  }
+};
+
+export const getInvoiceById = (id: string): Invoice | undefined => {
+  return getInvoices().find(inv => inv.id === id || inv.invoiceNumber === id);
+};
+
+export const getInvoiceByOrderId = (orderId: string): Invoice | undefined => {
+  return getInvoices().find(inv => inv.orderId === orderId);
+};
+
+export const generateInvoiceNumber = (): string => {
+  const currentYear = new Date().getFullYear();
+  const invoices = getInvoices();
+  const yearInvoices = invoices.filter(inv => inv.invoiceNumber && inv.invoiceNumber.startsWith(`INV-${currentYear}`));
+  const nextSeq = yearInvoices.length + 1;
+  return `INV-${currentYear}-${String(nextSeq).padStart(3, '0')}`;
+};
+
+export const createInvoiceFromOrder = (order: Order): Invoice => {
+  const existing = getInvoiceByOrderId(order.id);
+  if (existing) return existing;
+
+  const orderNum = order.orderNumber || (order.id ? `ORD-${order.id.slice(0, 6).toUpperCase()}` : `ORD-${Math.floor(100000 + Math.random() * 900000)}`);
+  const items: InvoiceItem[] = [];
+
+  // Cake line item
+  if (order.category === 'Cake' || order.category === 'Both') {
+    const cakeDesc = [
+      'Bespoke Luxury Cake',
+      order.flavor ? `Flavor: ${order.flavor}` : '',
+      order.size ? `Size: ${order.size}` : '',
+      order.numberOfTiers ? `${order.numberOfTiers} Tier(s)` : '',
+      order.messageOnCake ? `Calligraphy: "${order.messageOnCake}"` : ''
+    ].filter(Boolean).join(' · ');
+
+    const pastryTotal = (order.pastries || []).reduce((sum, p) => sum + (p.quantity * 0), 0);
+    const cakePrice = (order.totalPrice || 0) - (order.deliveryFee || 0) - pastryTotal;
+    const finalCakePrice = Math.max(0, cakePrice);
+
+    items.push({
+      id: 'item_cake_' + Date.now(),
+      description: cakeDesc || 'Artisanal Bespoke Celebration Cake',
+      quantity: 1,
+      unitPrice: finalCakePrice,
+      total: finalCakePrice
+    });
+  }
+
+  // Pastry items
+  if (order.pastries && order.pastries.length > 0) {
+    order.pastries.forEach((p, idx) => {
+      if (p.quantity > 0) {
+        items.push({
+          id: `item_pastry_${idx}_${Date.now()}`,
+          description: `Handmade Luxury Pastries: ${p.name}`,
+          quantity: p.quantity,
+          unitPrice: 0,
+          total: 0
+        });
+      }
+    });
+  }
+
+  const subtotal = items.reduce((sum, it) => sum + it.total, 0);
+  const deliveryCharge = order.deliveryFee || 0;
+  const total = subtotal + deliveryCharge;
+
+  return {
+    id: 'inv_' + Math.random().toString(36).substring(2, 10),
+    invoiceNumber: generateInvoiceNumber(),
+    orderId: order.id,
+    orderNumber: orderNum,
+    customerName: order.customerName,
+    customerEmail: order.email,
+    customerPhone: order.phone,
+    customerAddress: order.address ? `${order.address}, ${order.postcode || ''}`.trim() : (order.postcode || ''),
+    status: 'Draft',
+    items,
+    subtotal,
+    taxRate: 0,
+    taxAmount: 0,
+    discountType: 'percentage',
+    discountValue: 0,
+    discountAmount: 0,
+    deliveryCharge,
+    otherFees: 0,
+    otherFeesDescription: '',
+    total,
+    notes: 'Thank you for commissioning Christos Cakes Atelier. We are honored to craft this bespoke culinary masterpiece for your celebration.',
+    paymentTerms: 'A 50% non-refundable deposit is required upon receipt to secure your baking date. The remaining balance is due 14 days prior to delivery/collection.',
+    issueDate: new Date().toISOString().split('T')[0],
+    dueDate: order.deliveryDate || new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+};
+
+export const saveInvoice = async (invoice: Invoice): Promise<{ success: boolean; invoice: Invoice; error?: any }> => {
+  const invoices = getInvoices();
+  const index = invoices.findIndex(i => i.id === invoice.id || i.invoiceNumber === invoice.invoiceNumber);
+
+  const updatedInvoice: Invoice = {
+    ...invoice,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (index !== -1) {
+    invoices[index] = updatedInvoice;
+  } else {
+    invoices.unshift(updatedInvoice);
+  }
+
+  try {
+    localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices));
+    window.dispatchEvent(new Event('invoices_updated'));
+  } catch (e) {
+    console.warn('Failed to save invoice to localStorage:', e);
+  }
+
+  // Sync to Supabase if table exists
+  try {
+    await supabase.from('invoices').upsert(updatedInvoice);
+  } catch (err) {
+    console.warn('Supabase invoice sync note:', err);
+  }
+
+  // Trigger automation synchronization based on status
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://christoscakes.co.uk';
+  if (invoice.status === 'Issued') {
+    syncAutomationUpdate({
+      event: 'invoice.issued',
+      type: 'INVOICE_ISSUED',
+      orderId: invoice.orderId,
+      extra: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        orderNumber: invoice.orderNumber,
+        customerName: invoice.customerName,
+        customerEmail: invoice.customerEmail,
+        customerPhone: invoice.customerPhone,
+        total: invoice.total,
+        subtotal: invoice.subtotal,
+        deliveryCharge: invoice.deliveryCharge,
+        taxAmount: invoice.taxAmount,
+        discountAmount: invoice.discountAmount,
+        dueDate: invoice.dueDate,
+        issueDate: invoice.issueDate,
+        status: invoice.status,
+        invoiceUrl: `${origin}/invoice/${invoice.id}`,
+        items: invoice.items
+      },
+      force: true
+    }).catch(e => console.warn('Automation sync for invoice.issued failed:', e));
+  } else if (invoice.status === 'Paid') {
+    syncAutomationUpdate({
+      event: 'invoice.paid',
+      type: 'INVOICE_PAID',
+      orderId: invoice.orderId,
+      extra: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        orderNumber: invoice.orderNumber,
+        customerName: invoice.customerName,
+        total: invoice.total,
+        status: invoice.status
+      },
+      force: true
+    }).catch(e => console.warn('Automation sync for invoice.paid failed:', e));
+  }
+
+  return { success: true, invoice: updatedInvoice };
+};
+
+export const updateInvoiceStatus = async (invoiceId: string, status: InvoiceStatus) => {
+  const invoices = getInvoices();
+  const index = invoices.findIndex(i => i.id === invoiceId);
+  if (index !== -1) {
+    invoices[index].status = status;
+    invoices[index].updatedAt = new Date().toISOString();
+    localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices));
+    window.dispatchEvent(new Event('invoices_updated'));
+    try {
+      await supabase.from('invoices').update({ status, updatedAt: invoices[index].updatedAt }).eq('id', invoiceId);
+    } catch (e) {
+      console.warn('Supabase updateInvoiceStatus note:', e);
+    }
+    await saveInvoice(invoices[index]);
+  }
+};
+
+export const deleteInvoice = async (invoiceId: string) => {
+  const invoices = getInvoices().filter(i => i.id !== invoiceId);
+  localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices));
+  window.dispatchEvent(new Event('invoices_updated'));
+  try {
+    await supabase.from('invoices').delete().eq('id', invoiceId);
+  } catch (e) {
+    console.warn('Supabase deleteInvoice note:', e);
   }
 };

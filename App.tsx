@@ -6,6 +6,7 @@ import AdminPortal from './components/AdminPortal';
 import OrderForm from './components/OrderForm';
 import OrderView from './components/OrderView';
 import ErrorBoundary from './components/ErrorBoundary';
+import { InvoicePrintView } from './components/InvoicePrintView';
 import { UserRole } from './types';
 import { syncWithSupabase, seedPastries } from './utils/storage';
 import { PASTRIES } from './constants';
@@ -25,6 +26,10 @@ const Navigation = ({ role, setRole }: { role: UserRole; setRole: (r: UserRole) 
   const navigate = useNavigate();
   const location = useLocation();
   
+  if (location.pathname.startsWith('/invoice')) {
+    return null;
+  }
+
   const isStoreActive = location.pathname === '/' || location.pathname === '/order';
   const isAdminActive = location.pathname.startsWith('/admin');
 
@@ -80,6 +85,7 @@ const App: React.FC = () => {
               <Route path="/order" element={<OrderForm />} />
               <Route path="/admin" element={<AdminPortal />} />
               <Route path="/order/:orderId" element={<OrderView />} />
+              <Route path="/invoice/:invoiceId" element={<InvoicePrintView />} />
               {/* Fallback for any unknown route to boutique */}
               <Route path="*" element={<CustomerPortal />} />
             </Routes>

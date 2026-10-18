@@ -35,7 +35,14 @@ import {
   Save,
   Zap,
   Activity,
-  Check
+  Check,
+  FileText,
+  Receipt,
+  Printer,
+  Edit,
+  Plus,
+  Search,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { 
   syncWithSupabase,
@@ -49,11 +56,21 @@ import {
   getLogoUrl,
   saveLogoUrl,
   getOwnerSettings,
-  saveOwnerSettings
+  saveOwnerSettings,
+  getInvoices,
+  saveInvoice,
+  updateInvoiceStatus,
+  deleteInvoice,
+  createInvoiceFromOrder,
+  generateInvoiceNumber,
+  getInvoiceByOrderId
 } from '../utils/storage';
+import { InvoiceModal } from './InvoiceModal';
 import {
   getMakeWebhookUrl,
   setMakeWebhookUrl,
+  getMakeApiKey,
+  setMakeApiKey,
   isMakeAutoSyncEnabled,
   setMakeAutoSyncEnabled,
   getLastSyncStatus,
@@ -71,7 +88,7 @@ import {
   DEFAULT_SUPABASE_ANON_KEY,
   supabase
 } from '../utils/supabase';
-import { Order, OrderStatus, GalleryImage, ImageDisplayMode, OwnerProfile } from '../types';
+import { Order, OrderStatus, GalleryImage, ImageDisplayMode, OwnerProfile, Invoice, InvoiceStatus, InvoiceItem } from '../types';
 import { ADMIN_PASSWORD, LOGO_URL } from '../constants';
 import masterWorkflow from '../n8n/master_workflow.json';
 
@@ -84,7 +101,12 @@ const AdminPortal: React.FC = () => {
   const [password, setPassword] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-  const [viewMode, setViewMode] = useState<'Orders' | 'Gallery' | 'Insights' | 'Settings'>('Orders');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceFilter, setInvoiceFilter] = useState<'All' | 'Draft' | 'Issued' | 'Paid'>('All');
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'Orders' | 'Invoices' | 'Gallery' | 'Insights' | 'Settings'>('Orders');
   const [instaImportUrl, setInstaImportUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [displayMode, setDisplayMode] = useState<ImageDisplayMode>('original');
@@ -108,6 +130,7 @@ const AdminPortal: React.FC = () => {
 
   // Make.com Automation Suite State
   const [localMakeWebhookUrl, setLocalMakeWebhookUrl] = useState<string>(getMakeWebhookUrl());
+  const [localMakeApiKey, setLocalMakeApiKey] = useState<string>(getMakeApiKey());
   const [isMakeAutoSync, setIsMakeAutoSync] = useState<boolean>(isMakeAutoSyncEnabled());
   const [isTestingMake, setIsTestingMake] = useState<boolean>(false);
   const [isBulkSyncing, setIsBulkSyncing] = useState<boolean>(false);
@@ -395,6 +418,68 @@ const AdminPortal: React.FC = () => {
     setOrders(getOrders().sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()));
     setGalleryImages(getGalleryImages());
     setOwnerProfile(getOwnerSettings());
+    setInvoices(getInvoices());
+  };
+
+  const handleOpenInvoiceModal = (inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleCreateInvoiceForOrder = (order: Order) => {
+    const inv = createInvoiceFromOrder(order);
+    setSelectedInvoice(inv);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleCreateStandaloneInvoice = () => {
+    const orderNum = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+    const newInv: Invoice = {
+      id: 'inv_' + Math.random().toString(36).substring(2, 10),
+      invoiceNumber: generateInvoiceNumber(),
+      orderId: orderNum,
+      orderNumber: orderNum,
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
+      customerAddress: '',
+      status: 'Draft',
+      items: [
+        {
+          id: 'item_1',
+          description: 'Bespoke Confectionery Commission',
+          quantity: 1,
+          unitPrice: 0,
+          total: 0
+        }
+      ],
+      subtotal: 0,
+      taxRate: 0,
+      taxAmount: 0,
+      discountType: 'percentage',
+      discountValue: 0,
+      discountAmount: 0,
+      deliveryCharge: 0,
+      otherFees: 0,
+      total: 0,
+      notes: 'Thank you for commissioning Christos Cakes Atelier.',
+      paymentTerms: 'A 50% non-refundable deposit is required upon receipt to secure your baking date. The remaining balance is due 14 days prior to delivery/collection.',
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setSelectedInvoice(newInv);
+    setIsInvoiceModalOpen(true);
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (confirm('Permanently delete this invoice?')) {
+      await deleteInvoice(invoiceId);
+      await refreshData();
+      setLastAction('Invoice deleted');
+      setTimeout(() => setLastAction(null), 3000);
+    }
   };
 
   const handleSaveSupabaseConfig = async () => {
@@ -673,61 +758,109 @@ const AdminPortal: React.FC = () => {
         </div>
       )}
 
-      <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-12 gap-8">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
         <div>
           <h1 className="text-4xl font-bold text-slate-900 font-serif">Admin Management</h1>
           <p className="text-sm text-slate-500 font-medium">Control center for Christos Cakes</p>
         </div>
-        <div className="flex bg-slate-200/60 p-1.5 rounded-3xl w-full xl:w-auto shadow-inner backdrop-blur-sm gap-1 overflow-x-auto no-scrollbar">
+
+        {/* Tab Navigation - Fully Responsive & Never Hidden */}
+        <div className="flex flex-wrap items-center bg-slate-200/80 p-1.5 rounded-3xl w-full lg:w-auto shadow-inner backdrop-blur-sm gap-1.5">
           <button 
             onClick={() => setViewMode('Orders')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-5 py-3 rounded-2xl text-[10px] font-black tracking-[0.15em] transition-all uppercase cursor-pointer ${viewMode === 'Orders' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
           >
             Orders
           </button>
           <button 
-            onClick={() => setViewMode('Gallery')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => setViewMode('Invoices')}
+            className={`px-5 py-3 rounded-2xl text-[10px] font-black tracking-[0.15em] transition-all uppercase cursor-pointer ${viewMode === 'Invoices' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            Gallery Studio
+            Invoices {invoices.length > 0 ? `(${invoices.length})` : ''}
+          </button>
+          <button 
+            onClick={() => setViewMode('Gallery')}
+            className={`px-5 py-3 rounded-2xl text-[10px] font-black tracking-[0.15em] transition-all uppercase cursor-pointer ${viewMode === 'Gallery' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Gallery
           </button>
           <button 
             onClick={() => setViewMode('Insights')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-5 py-3 rounded-2xl text-[10px] font-black tracking-[0.15em] transition-all uppercase cursor-pointer ${viewMode === 'Insights' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
           >
             Insights
           </button>
           <button 
             onClick={() => setViewMode('Settings')}
-            className={`flex-1 xl:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black tracking-[0.2em] transition-all uppercase ${viewMode === 'Settings' ? 'bg-white shadow-lg text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-5 py-3 rounded-2xl text-[10px] font-black tracking-[0.15em] transition-all uppercase flex items-center gap-2 cursor-pointer ${
+              viewMode === 'Settings' 
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-200 scale-105' 
+                : 'bg-purple-100 text-purple-900 hover:bg-purple-200 font-bold'
+            }`}
           >
-            Settings
+            <SettingsIcon className="h-3.5 w-3.5" />
+            <span>Settings</span>
+            <span className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-mono font-bold tracking-normal">
+              Make.com
+            </span>
           </button>
         </div>
       </header>
 
       {viewMode === 'Insights' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
-            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <DollarSign className="h-6 w-6 text-green-600" />
+        <div className="space-y-8 animate-slideIn">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Total Revenue</h3>
+              <p className="text-5xl font-bold text-slate-900 font-serif">£{(revenue || 0).toFixed(2)}</p>
             </div>
-            <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Total Revenue</h3>
-            <p className="text-5xl font-bold text-slate-900 font-serif">£{(revenue || 0).toFixed(2)}</p>
+            <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Clock className="h-6 w-6 text-pink-500" strokeWidth={3} />
+              </div>
+              <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Active Orders</h3>
+              <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length}</p>
+            </div>
+            <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <CalendarClock className="h-6 w-6 text-blue-500" strokeWidth={3} />
+              </div>
+              <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Collections</h3>
+              <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.fulfillmentType === 'Collection').length}</p>
+            </div>
           </div>
-          <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
-            <div className="w-12 h-12 bg-pink-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Clock className="h-6 w-6 text-pink-500" strokeWidth={3} />
+
+          {/* Quick Direct Link to Settings & Make.com Automation */}
+          <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-rose-50 p-8 rounded-[2.5rem] border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 to-pink-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200 shrink-0">
+                <Zap className="h-7 w-7" />
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-slate-900 font-serif">Make.com Automation & Studio Settings</h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Input your Make.com Webhook URL, download scenario blueprints, and toggle real-time synchronization.
+                </p>
+              </div>
             </div>
-            <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Active Orders</h3>
-            <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length}</p>
-          </div>
-          <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all">
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <CalendarClock className="h-6 w-6 text-blue-500" strokeWidth={3} />
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button
+                onClick={() => setViewMode('Settings')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-200 active:scale-95"
+              >
+                <SettingsIcon className="h-4 w-4" />
+                Open Settings Tab
+              </button>
+              <button
+                onClick={() => setViewMode('Invoices')}
+                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+              >
+                Manage Invoices
+              </button>
             </div>
-            <h3 className="text-slate-400 text-[10px] font-black uppercase mb-2 tracking-widest">Collections</h3>
-            <p className="text-5xl font-bold text-slate-900 font-serif">{orders.filter(o => o.fulfillmentType === 'Collection').length}</p>
           </div>
         </div>
       )}
@@ -1345,6 +1478,48 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
                 <p className="mt-2 text-[10px] text-slate-400 leading-relaxed">
                   Every order event (<code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.created</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.status_updated</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">order.quote_updated</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-pink-700">feedback.submitted</code>) will be dispatched here in real time.
                 </p>
+
+                {/* Real-time URL format check */}
+                {localMakeWebhookUrl && !localMakeWebhookUrl.toLowerCase().includes('hook.') && (
+                  <div className="mt-3 p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start gap-3 animate-fadeIn">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold">⚠️ Warning: URL missing "hook." (Causes HTTP 401)</strong>
+                      <p className="mt-1 leading-relaxed text-[11px]">
+                        The URL you entered does not appear to be a Make.com Webhook endpoint. Make Custom Webhooks always start with <code className="bg-white px-1.5 py-0.5 rounded text-pink-700 font-mono font-bold">https://hook.eu1.make.com/...</code> or <code className="bg-white px-1.5 py-0.5 rounded text-pink-700 font-mono font-bold">https://hook.us1.make.com/...</code>.
+                      </p>
+                      <p className="mt-1.5 text-[11px] font-semibold">
+                        To get the correct URL: In your Make.com scenario, click directly on the <strong>Custom Webhook</strong> circle module, then click <strong>"Copy address to clipboard"</strong>. (Do not copy from your browser's top address bar).
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Optional Make API Key */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                    Make.com API Key / Header Token (Optional)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">Only required if your webhook has header authentication</span>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="password" 
+                    placeholder="e.g. your-make-api-token (leave empty if your webhook is public)"
+                    className="w-full p-4 pr-12 bg-slate-50 focus:bg-white rounded-2xl border border-slate-200 focus:border-purple-400 outline-none text-sm font-mono text-slate-800 transition-all"
+                    value={localMakeApiKey}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setLocalMakeApiKey(val);
+                      setMakeApiKey(val);
+                    }}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Key className="h-5 w-5 text-slate-400" />
+                  </div>
+                </div>
               </div>
 
               {/* Auto Sync Toggle */}
@@ -1393,6 +1568,24 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
                       <div className="text-[10px] opacity-80 mt-1">Roundtrip Latency: {makeFeedback.latency} ms</div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Diagnostic Helper for HTTP 401 */}
+              {makeFeedback.message && makeFeedback.message.includes('401') && (
+                <div className="p-6 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 font-black uppercase text-[11px] text-amber-800 tracking-wider">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                    How to Fix Make.com HTTP 401 (Unauthorized) in 2 Steps:
+                  </div>
+                  <ol className="list-decimal pl-5 space-y-2 leading-relaxed font-medium">
+                    <li>
+                      <strong>Ensure the URL starts with <code className="bg-white px-1.5 py-0.5 rounded text-pink-700 font-mono font-bold">https://hook...</code>:</strong> In Make.com, open your scenario &rarr; click on the green <em>Custom Webhook</em> module &rarr; click <strong>"Copy address to clipboard"</strong>. (Do NOT copy the URL from your browser address bar!).
+                    </li>
+                    <li>
+                      <strong>Turn the Scenario switch to ON:</strong> In Make.com, look at the bottom-left corner of the canvas. Make sure the toggle switch is turned <strong>ON</strong> (Scheduling: <em>Immediately as data arrives</em>), or click the big <strong>"Run once"</strong> button to put it in listening mode. Make returns 401 if a webhook is deactivated.
+                    </li>
+                  </ol>
                 </div>
               )}
 
@@ -1551,6 +1744,333 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
         </div>
       )}
 
+
+      {/* INVOICES MANAGEMENT TAB */}
+      {viewMode === 'Invoices' && (
+        <div className="space-y-10 animate-slideIn">
+          {/* Header & Quick Actions */}
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="p-2.5 rounded-2xl bg-pink-50 text-pink-600">
+                  <FileText className="h-6 w-6" />
+                </span>
+                <h2 className="text-3xl font-bold text-slate-900 font-serif">Invoice Management & Billing</h2>
+              </div>
+              <p className="text-sm text-slate-400 font-medium max-w-xl">
+                Create invoices from customer orders, configure taxes, discounts, delivery charges, save drafts, issue to clients, and export/print official PDFs.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleCreateStandaloneInvoice}
+                className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-pink-200 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                Create Standalone Invoice
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-600">
+                <Receipt className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Total Invoiced</span>
+                <span className="text-2xl font-bold text-slate-900 font-serif">
+                  £{invoices.reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">{invoices.length} total invoices</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider block">Paid Invoices</span>
+                <span className="text-2xl font-bold text-slate-900 font-serif">
+                  £{invoices.filter(i => i.status === 'Paid').reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  {invoices.filter(i => i.status === 'Paid').length} settled
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider block">Issued (Pending)</span>
+                <span className="text-2xl font-bold text-slate-900 font-serif">
+                  £{invoices.filter(i => i.status === 'Issued').reduce((sum, inv) => sum + (inv.total || 0), 0).toFixed(2)}
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  {invoices.filter(i => i.status === 'Issued').length} awaiting payment
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                <Edit className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-600 tracking-wider block">Drafts</span>
+                <span className="text-2xl font-bold text-slate-900 font-serif">
+                  {invoices.filter(i => i.status === 'Draft').length}
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Unissued drafts</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Status Filters */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="relative w-full md:w-96">
+              <Search className="h-4 w-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search invoice #, order #, client name, email..."
+                value={invoiceSearchQuery}
+                onChange={e => setInvoiceSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-2xl text-xs font-bold text-slate-800 placeholder:text-slate-400 border border-slate-200/60 focus:bg-white focus:border-pink-300 outline-none transition-all"
+              />
+              {invoiceSearchQuery && (
+                <button
+                  onClick={() => setInvoiceSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              {(['All', 'Draft', 'Issued', 'Paid'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setInvoiceFilter(f)}
+                  className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    invoiceFilter === f
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
+                >
+                  {f} {f === 'All' ? `(${invoices.length})` : `(${invoices.filter(i => i.status === f).length})`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Invoices List */}
+          <div className="space-y-6">
+            {invoices
+              .filter(inv => {
+                const matchesFilter = invoiceFilter === 'All' || inv.status === invoiceFilter;
+                const q = invoiceSearchQuery.toLowerCase().trim();
+                const matchesSearch = !q ||
+                  inv.invoiceNumber.toLowerCase().includes(q) ||
+                  inv.orderNumber.toLowerCase().includes(q) ||
+                  inv.customerName.toLowerCase().includes(q) ||
+                  (inv.customerEmail && inv.customerEmail.toLowerCase().includes(q));
+                return matchesFilter && matchesSearch;
+              })
+              .map(inv => (
+                <div
+                  key={inv.id}
+                  className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-xl transition-all"
+                >
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-600 shrink-0 shadow-inner">
+                        <FileText className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-xl font-bold font-mono text-slate-900">{inv.invoiceNumber}</h3>
+                          <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider ${
+                            inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                            inv.status === 'Issued' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            'bg-amber-100 text-amber-800 border border-amber-200'
+                          }`}>
+                            {inv.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Linked Order: <span className="font-mono font-bold text-slate-700">#{inv.orderNumber}</span> · Issued: <span className="font-bold text-slate-600">{inv.issueDate}</span> · Due: <span className="font-bold text-slate-600">{inv.dueDate}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-left lg:text-right">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Total Amount</span>
+                      <span className="text-3xl font-bold font-serif text-slate-900">£{(inv.total || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-6 items-start">
+                    {/* Customer Info */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block">Customer Details</span>
+                      <p className="text-base font-bold text-slate-800 font-serif">{inv.customerName || 'Valued Client'}</p>
+                      <div className="text-xs text-slate-500 space-y-1">
+                        {inv.customerEmail && <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {inv.customerEmail}</p>}
+                        {inv.customerPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {inv.customerPhone}</p>}
+                        {inv.customerAddress && <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-400" /> {inv.customerAddress}</p>}
+                      </div>
+                    </div>
+
+                    {/* Line Items Breakdown */}
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block">
+                        Line Items ({inv.items?.length || 0})
+                      </span>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-2">
+                        {inv.items?.map((it, idx) => (
+                          <div key={it.id || idx} className="text-xs flex justify-between items-center py-1 border-b border-slate-50">
+                            <span className="text-slate-700 truncate pr-2">
+                              <span className="font-bold text-slate-900">{it.quantity}x</span> {it.description}
+                            </span>
+                            <span className="font-mono font-bold text-slate-800 shrink-0">£{(it.total || 0).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Price Breakdown */}
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-500">
+                        <span>Subtotal:</span>
+                        <span className="font-mono font-bold text-slate-800">£{(inv.subtotal || 0).toFixed(2)}</span>
+                      </div>
+                      {inv.discountAmount > 0 && (
+                        <div className="flex justify-between text-rose-600 font-medium">
+                          <span>Discount ({inv.discountType === 'percentage' ? `${inv.discountValue}%` : 'Fixed'}):</span>
+                          <span className="font-mono font-bold">-£{inv.discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {inv.taxAmount > 0 && (
+                        <div className="flex justify-between text-slate-500">
+                          <span>Tax ({inv.taxRate}%):</span>
+                          <span className="font-mono font-bold text-slate-800">+£{inv.taxAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {inv.deliveryCharge > 0 && (
+                        <div className="flex justify-between text-slate-500">
+                          <span>Delivery Charge:</span>
+                          <span className="font-mono font-bold text-slate-800">+£{inv.deliveryCharge.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {inv.otherFees > 0 && (
+                        <div className="flex justify-between text-slate-500">
+                          <span>Other Fees ({inv.otherFeesDescription || 'Add-on'}):</span>
+                          <span className="font-mono font-bold text-slate-800">+£{inv.otherFees.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold text-slate-900 font-serif">
+                        <span>Grand Total:</span>
+                        <span className="text-pink-600 font-mono">£{(inv.total || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => handleOpenInvoiceModal(inv)}
+                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <Edit className="h-3.5 w-3.5 text-slate-500" />
+                        Edit Details
+                      </button>
+
+                      <button
+                        onClick={() => navigate(`/invoice/${inv.id}`)}
+                        className="bg-slate-900 hover:bg-black text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                        Print / Download PDF
+                      </button>
+
+                      {inv.status === 'Draft' && (
+                        <button
+                          onClick={async () => {
+                            await updateInvoiceStatus(inv.id, 'Issued');
+                            await refreshData();
+                            setLastAction(`✓ Invoice ${inv.invoiceNumber} Issued to Client`);
+                            setTimeout(() => setLastAction(null), 3500);
+                          }}
+                          className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          Issue Final Invoice
+                        </button>
+                      )}
+
+                      {inv.status === 'Issued' && (
+                        <button
+                          onClick={async () => {
+                            await updateInvoiceStatus(inv.id, 'Paid');
+                            await refreshData();
+                            setLastAction(`✓ Invoice ${inv.invoiceNumber} Marked as Paid`);
+                            setTimeout(() => setLastAction(null), 3500);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-md active:scale-95"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Mark as Paid
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteInvoice(inv.id)}
+                      className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-2.5 rounded-xl transition-all cursor-pointer"
+                      title="Delete Invoice"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {invoices.length === 0 && (
+              <div className="text-center py-28 bg-white rounded-[3.5rem] border-2 border-dashed border-slate-200 px-6">
+                <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6 text-pink-500">
+                  <FileText className="h-10 w-10" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-800 font-serif">No Invoices Yet</h3>
+                <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto font-medium">
+                  You can generate an official tax invoice directly from any customer order in the Orders tab, or create a standalone invoice now.
+                </p>
+                <div className="mt-8 flex justify-center gap-4">
+                  <button
+                    onClick={handleCreateStandaloneInvoice}
+                    className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-pink-200 cursor-pointer"
+                  >
+                    + Create Standalone Invoice
+                  </button>
+                  <button
+                    onClick={() => setViewMode('Orders')}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest cursor-pointer"
+                  >
+                    Go to Orders Tab
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {viewMode === 'Orders' && (
         <div className="space-y-8 animate-slideIn">
@@ -1723,6 +2243,58 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
                       >
                         Send Order to Client
                       </button>
+
+                      {/* Invoice Link / Generator on Order Card */}
+                      {(() => {
+                        const linkedInvoice = getInvoiceByOrderId(order.id);
+                        if (linkedInvoice) {
+                          return (
+                            <div className="pt-3 mt-3 border-t border-pink-100/70">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[9px] font-black uppercase text-pink-600 tracking-wider flex items-center gap-1">
+                                  <FileText className="h-3 w-3" />
+                                  {linkedInvoice.invoiceNumber}
+                                </span>
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                  linkedInvoice.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                                  linkedInvoice.status === 'Issued' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {linkedInvoice.status}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  onClick={() => handleOpenInvoiceModal(linkedInvoice)}
+                                  className="bg-white hover:bg-pink-50 text-pink-700 border border-pink-200 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                  Edit Invoice
+                                </button>
+                                <button
+                                  onClick={() => navigate(`/invoice/${linkedInvoice.id}`)}
+                                  className="bg-slate-900 hover:bg-black text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                                >
+                                  <Printer className="h-3 w-3" />
+                                  Print / PDF
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="pt-3 mt-3 border-t border-pink-100/70">
+                              <button
+                                onClick={() => handleCreateInvoiceForOrder(order)}
+                                className="w-full bg-pink-50 hover:bg-pink-100 text-pink-800 border border-pink-200 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                              >
+                                <FileText className="h-3.5 w-3.5 text-pink-600" />
+                                Create Invoice From Order
+                              </button>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1761,12 +2333,12 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3">
-                  {(['Pending', 'Baking', 'Ready', 'Completed'] as OrderStatus[]).map(s => (
+                <div className="flex flex-wrap gap-2.5">
+                  {(['New Order', 'Pending', 'Baking', 'Ready', 'Completed', 'Cancelled'] as OrderStatus[]).map(s => (
                     <button 
                       key={s} 
                       onClick={() => handleStatusChange(order.id, s)}
-                      className={`flex-1 min-w-[140px] text-[10px] font-black py-5 rounded-[1.5rem] transition-all tracking-[0.2em] shadow-sm ${order.status === s ? 'bg-slate-900 text-white scale-[1.03] shadow-2xl' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:bg-slate-100 hover:text-slate-600'}`}
+                      className={`flex-1 min-w-[110px] text-[10px] font-black py-4 rounded-[1.25rem] transition-all tracking-[0.15em] shadow-sm cursor-pointer ${order.status === s ? 'bg-slate-900 text-white scale-[1.02] shadow-xl' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:bg-slate-100 hover:text-slate-600'}`}
                     >
                       {s.toUpperCase()}
                     </button>
@@ -1785,6 +2357,25 @@ ON CONFLICT (id) DO UPDATE SET role = 'admin';`}
             </div>
           )}
         </div>
+      )}
+
+      {/* Invoice Editor Modal */}
+      {selectedInvoice && (
+        <InvoiceModal
+          isOpen={isInvoiceModalOpen}
+          onClose={() => {
+            setIsInvoiceModalOpen(false);
+            setSelectedInvoice(null);
+          }}
+          initialInvoice={selectedInvoice}
+          onInvoiceSaved={async (saved) => {
+            await refreshData();
+            setSelectedInvoice(saved);
+          }}
+          onViewPrint={(inv) => {
+            navigate(`/invoice/${inv.id}`);
+          }}
+        />
       )}
     </div>
   </div>

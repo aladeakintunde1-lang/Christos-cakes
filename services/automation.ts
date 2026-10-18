@@ -63,6 +63,36 @@ export const setMakeWebhookUrl = (url: string) => {
   }
 };
 
+export const MAKE_API_KEY_KEY = 'sweettrack_make_api_key';
+
+/**
+ * Gets the configured Make.com API Key or Authorization Token
+ */
+export const getMakeApiKey = (): string => {
+  try {
+    const saved = localStorage.getItem(MAKE_API_KEY_KEY);
+    if (saved && saved.trim()) return saved.trim();
+  } catch {}
+
+  const envKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_MAKE_API_KEY) ||
+    (typeof process !== 'undefined' && process.env ? process.env.VITE_MAKE_API_KEY : undefined);
+  if (envKey && typeof envKey === 'string' && envKey.trim()) {
+    return envKey.trim();
+  }
+  return '';
+};
+
+/**
+ * Sets the Make.com API Key in localStorage
+ */
+export const setMakeApiKey = (key: string) => {
+  try {
+    localStorage.setItem(MAKE_API_KEY_KEY, key.trim());
+  } catch (e) {
+    console.warn('Failed to save Make API key:', e);
+  }
+};
+
 /**
  * Checks whether automatic synchronization is enabled for every order update
  */
@@ -123,16 +153,19 @@ export const formatOrderForMakePayload = (order: Partial<Order>, event: string, 
 
   // Remove large base64 image data to prevent HTTP 413 Payload Too Large errors in webhooks
   const { inspirationImage, ...sanitizedOrder } = order as any;
+  const orderNum = order.orderNumber || (order.id ? `ORD-${order.id.slice(0, 6).toUpperCase()}` : `ORD-${Math.floor(100000 + Math.random() * 900000)}`);
+  const currentStatus = order.status || 'New Order';
 
   return {
     ...sanitizedOrder,
     event,
     type,
     id: order.id,
+    orderNumber: orderNum,
     customerName: order.customerName || 'Valued Client',
     email: order.email || '',
     phone: order.phone || '',
-    status: order.status || 'Pending',
+    status: currentStatus,
     totalPrice: order.totalPrice || 0,
     deliveryFee: order.deliveryFee || 0,
     fulfillmentType: order.fulfillmentType || 'Collection',
@@ -153,6 +186,21 @@ export const formatOrderForMakePayload = (order: Partial<Order>, event: string, 
     feedbackComment: order.feedbackComment,
     orderUrl,
     appUrl: origin,
+    ownerNotification: {
+      recipient: 'aladeakintunde1@gmail.com',
+      subject: `🚨 Action Required: New Order #${orderNum} from ${order.customerName || 'Client'}`,
+      requiresProcessing: true,
+      text: `A new luxury order #${orderNum} has been placed and requires processing in the atelier. Customer: ${order.customerName} (${order.phone}, ${order.email}). Event Date: ${order.deliveryDate || 'TBD'} (${order.deliveryTimeSlot || 'Standard'}). Total: £${(order.totalPrice || 0).toFixed(2)}.`
+    },
+    customerNotification: {
+      recipient: order.email || '',
+      subject: `Christos Cakes Order Confirmation #${orderNum}`,
+      orderNumber: orderNum,
+      orderStatus: currentStatus,
+      summary: `Thank you, ${order.customerName}! Your bespoke commission #${orderNum} has been received. Our atelier is now reviewing your specifications.`,
+      trackingUrl: orderUrl,
+      totalAmount: `£${(order.totalPrice || 0).toFixed(2)}`
+    },
     timestamp: new Date().toISOString(),
     source: 'Christos Cakes Luxury Bakery',
     ...extra
@@ -206,12 +254,19 @@ export const syncAutomationUpdate = async (params: {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
+    const apiKey = getMakeApiKey();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (apiKey) {
+      headers['Authorization'] = apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`;
+      headers['x-api-key'] = apiKey;
+    }
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers,
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -221,7 +276,13 @@ export const syncAutomationUpdate = async (params: {
     const result: SyncResult = {
       success: response.ok,
       status: response.status,
-      message: response.ok ? `✓ Synchronized ${event} to Make.com` : `HTTP ${response.status} from Make.com`,
+      message: response.ok 
+        ? `✓ Synchronized ${event} to Make.com` 
+        : response.status === 401
+          ? (!webhookUrl.toLowerCase().includes('hook.')
+            ? `HTTP 401: Invalid URL format. A Make webhook URL must start with "https://hook." (not your browser address bar). Click the Custom Webhook module in Make to copy the true URL.`
+            : `HTTP 401: Scenario is turned OFF in Make.com. Toggle the switch to ON in the bottom-left of Make, or enter your API key if required.`)
+          : `HTTP ${response.status} from Make.com`,
       timestamp: new Date().toISOString(),
       event,
       orderId: effectiveOrder.id
@@ -257,10 +318,11 @@ export const testMakeWebhook = async (testUrl?: string): Promise<{ success: bool
     event: 'test.ping',
     type: 'TEST_PING',
     id: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
+    orderNumber: 'ORD-TEST-001',
     customerName: 'Test Client (Make.com Verification)',
     email: 'client@example.com',
     phone: '+44 7000 000000',
-    status: 'Pending',
+    status: 'New Order',
     totalPrice: 150.00,
     deliveryFee: 15.00,
     fulfillmentType: 'Delivery',
@@ -279,11 +341,19 @@ export const testMakeWebhook = async (testUrl?: string): Promise<{ success: bool
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+    const apiKey = getMakeApiKey();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (apiKey) {
+      headers['Authorization'] = apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`;
+      headers['x-api-key'] = apiKey;
+    }
+
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify(testPayload),
       signal: controller.signal
     });
@@ -306,11 +376,22 @@ export const testMakeWebhook = async (testUrl?: string): Promise<{ success: bool
         message: `✓ Success! Make.com responded with status ${response.status} in ${latencyMs}ms.`
       };
     } else {
+      let specificHint = `Check that your scenario is turned ON or scheduled.`;
+      const isNotHookSubdomain = !targetUrl.toLowerCase().includes('hook.');
+      
+      if (response.status === 401) {
+        if (isNotHookSubdomain) {
+          specificHint = `Notice: Your URL does not contain "hook." (e.g. hook.eu1.make.com). In Make.com, open your scenario's "Custom Webhook" module and click "Copy address to clipboard". Do not copy the URL from your browser address bar.`;
+        } else {
+          specificHint = `Turn your scenario switch to "ON" in the bottom-left of Make.com (or click "Run once" on the canvas). If your webhook requires an API token, enter it in the API Key field below.`;
+        }
+      }
+
       return {
         success: false,
         status: response.status,
         latencyMs,
-        message: `Make.com returned HTTP ${response.status} ${response.statusText}. Check that your scenario is turned ON or scheduled.`
+        message: `Make.com returned HTTP ${response.status} ${response.statusText || 'Unauthorized'}. ${specificHint}`
       };
     }
   } catch (err: any) {
